@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comanda → Planilha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Poppins:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0d;
+    --paper:#f7f1e2;
+    --ink:#181818;
+    --ink-soft:#5c564a;
+    --orange:#f6af43;
+    --orange2:#f49140;
+    --red:#e73334;
+    --cyan:#40d5e8;
+    --line:#e3dac1;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 8%, rgba(246,175,67,0.10) 0%, transparent 40%),
+      radial-gradient(circle at 85% 92%, rgba(64,213,232,0.08) 0%, transparent 40%),
+      var(--bg);
+    color:var(--paper);
+    font-family:'Poppins',sans-serif;
+    min-height:100vh;
+    padding:0 0 60px 0;
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:0 34px;}
+
+  header{padding:30px 34px 4px;text-align:center;position:relative;}
+  header .logo-wrap{position:relative;display:flex;justify-content:center;align-items:center;height:56px;margin-bottom:2px;}
+  header .wordmark{position:relative;z-index:1;font-family:'Titan One',cursive;font-size:44px;letter-spacing:.02em;color:var(--paper);-webkit-text-stroke:3px var(--ink);text-shadow:3px 3px 0 var(--ink);}
+  header .wordmark .u{color:var(--orange);-webkit-text-stroke:3px var(--ink);}
+  header .eyebrow{font-family:'Poppins',sans-serif;font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin-top:2px;}
+  header h1{font-family:'Poppins',sans-serif;font-weight:700;font-size:19px;margin:4px 0 0;color:var(--paper);}
+  .gear{position:absolute;top:18px;right:16px;background:none;border:2px solid var(--paper);border-radius:50%;width:34px;height:34px;cursor:pointer;color:var(--paper);font-size:15px;z-index:2;}
+  .gear:hover{background:var(--orange);border-color:var(--orange);color:var(--ink);}
+
+  .side-wave{position:fixed;top:0;height:100vh;width:36px;z-index:5;pointer-events:none;}
+  .side-wave-left{left:0;}
+  .side-wave-right{right:0;}
+  @media (max-width:480px){
+    .side-wave{width:24px;}
+  }
+
+  .step-label{font-family:'Poppins',sans-serif;font-weight:700;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);margin:0 0 8px;display:flex;align-items:center;gap:8px;}
+  .step-label .num{width:22px;height:22px;border-radius:50%;background:var(--red);border:2px solid var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Titan One',cursive;font-size:11px;flex-shrink:0;}
+
+  .card{background:var(--paper);border:2px solid var(--ink);border-radius:var(--radius);padding:18px;margin-bottom:22px;box-shadow:5px 5px 0 rgba(0,0,0,0.35);color:var(--ink);}
+
+  .field-row{display:flex;gap:10px;margin-bottom:12px;}
+  .field-row:last-child{margin-bottom:0;}
+  .field{flex:1;}
+  label{display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;font-family:'Poppins',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+  input[type=text],input[type=number],input[type=url],input[type=date]{
+    width:100%;padding:10px 11px;border:2px solid var(--ink);border-radius:8px;
+    font-family:'IBM Plex Mono',monospace;font-size:14px;background:#fff;color:var(--ink);
+  }
+  input:focus{outline:3px solid var(--orange);outline-offset:1px;}
+  select{
+    width:100%;padding:10px 11px;border:2px solid var(--ink);border-radius:8px;
+    font-family:'IBM Plex Mono',monospace;font-size:14px;background:#fff;color:var(--ink);
+  }
+  select:focus{outline:3px solid var(--orange);outline-offset:1px;}
+  .evento-hint{font-family:'Poppins',sans-serif;font-size:11.5px;color:var(--ink-soft);margin-top:8px;}
+
+  .btn-row{display:flex;gap:10px;}
+  .capture-btn{
+    flex:1;padding:15px 10px;border-radius:10px;border:2px solid var(--ink);
+    background:var(--orange);color:var(--ink);font-family:'Poppins',sans-serif;font-weight:700;font-size:14px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;
+    box-shadow:3px 3px 0 var(--ink);
+  }
+  .capture-btn.secondary{background:var(--cyan);color:var(--ink);}
+  .capture-btn:hover{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink);}
+  .capture-btn:disabled{opacity:.45;cursor:default;transform:none;box-shadow:3px 3px 0 var(--ink);}
+  .capture-btn.disabled{opacity:.45;cursor:default;pointer-events:none;transform:none;box-shadow:3px 3px 0 var(--ink);}
+  input[type=file]{display:none;}
+
+  .status{margin-top:12px;font-family:'Poppins',sans-serif;font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:8px;}
+  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--red);animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .comanda-card{border:2px solid var(--ink);border-radius:10px;padding:14px;margin-bottom:14px;background:#fffdf6;}
+  .comanda-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .comanda-title{font-family:'Titan One',cursive;font-size:14px;color:var(--red);}
+  .del-comanda{background:none;border:none;color:var(--red);cursor:pointer;font-size:12.5px;font-family:'Poppins',sans-serif;font-weight:600;}
+
+  table{width:100%;border-collapse:collapse;margin-top:6px;}
+  th{font-family:'Poppins',sans-serif;font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);text-align:left;padding:6px 4px;border-bottom:2px solid var(--ink);}
+  td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  td input{padding:6px 6px;font-size:13px;width:100%;}
+  .item-name-col{width:36%;}
+  .del-btn{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:4px;line-height:1;}
+  .add-item{margin-top:8px;background:none;border:2px dashed var(--ink-soft);color:var(--ink-soft);border-radius:8px;padding:8px 12px;font-family:'Poppins',sans-serif;font-weight:600;font-size:11.5px;cursor:pointer;width:100%;}
+  .add-item:hover{border-color:var(--red);color:var(--red);}
+
+  .subtotal-row{display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);}
+
+  .total-row{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:12px;border-top:3px solid var(--ink);font-family:'Titan One',cursive;font-size:16px;color:var(--ink);}
+
+  .save-btn{width:100%;margin-top:16px;padding:16px;border-radius:10px;border:2px solid var(--ink);background:var(--orange2);color:var(--ink);font-family:'Titan One',cursive;font-size:16px;cursor:pointer;box-shadow:3px 3px 0 var(--ink);}
+  .save-btn:hover{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink);}
+  .save-btn:disabled{opacity:.5;cursor:default;transform:none;}
+
+  .stamp-wrap{display:flex;justify-content:center;margin:18px 0;opacity:0;transform:scale(1.4) rotate(-8deg);transition:opacity .25s ease, transform .3s cubic-bezier(.2,1.6,.4,1);}
+  .stamp-wrap.show{opacity:1;transform:scale(1) rotate(-8deg);}
+  .stamp{border:3px solid var(--red);color:var(--red);font-family:'Titan One',cursive;font-size:15px;padding:8px 18px;border-radius:8px;letter-spacing:.03em;}
+
+  .error-box{background:#fbecea;border:2px solid var(--red);color:var(--red);padding:10px 12px;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12.5px;margin-top:12px;}
+  .empty-hint{font-family:'Poppins',sans-serif;font-size:12.5px;color:var(--ink-soft);text-align:center;padding:10px 0;}
+
+  .history-item{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);}
+
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-bg.show{display:flex;}
+  .modal{background:var(--paper);border-radius:14px;padding:22px;max-width:420px;width:100%;border:2px solid var(--ink);box-shadow:6px 6px 0 rgba(0,0,0,0.5);}
+  .modal h2{font-family:'Titan One',cursive;font-size:20px;margin:0 0 6px;color:var(--red);}
+  .modal p{font-size:13px;color:var(--ink-soft);line-height:1.5;margin:0 0 14px;}
+  .modal-actions{display:flex;gap:10px;margin-top:16px;}
+  .btn-secondary{flex:1;padding:11px;border-radius:8px;border:2px solid var(--ink);background:#fff;color:var(--ink);font-family:'Poppins',sans-serif;font-weight:700;cursor:pointer;font-size:14px;}
+  .btn-primary{flex:1;padding:11px;border-radius:8px;border:2px solid var(--ink);background:var(--orange);color:var(--ink);font-family:'Poppins',sans-serif;font-weight:700;cursor:pointer;font-size:14px;}
+</style>
+</head>
+<body>
+
+  <header>
+    <button class="gear" id="gearBtn" title="Configurar planilha">⚙</button>
+    <div class="logo-wrap">
+      <div class="wordmark">NAR<span class="u">U</span>A</div>
+    </div>
+    <div class="eyebrow">Comanda → Planilha</div>
+    <h1>Registro de vendas do food truck</h1>
+  </header>
+
+  <svg class="side-wave side-wave-left" viewBox="0 0 40 800" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <pattern id="archPatternLeft" patternUnits="userSpaceOnUse" width="40" height="180">
+        <g fill="none" stroke-linecap="round" stroke-width="6">
+          <path d="M0,6 A28,28 0 0 1 0,62" stroke="#e73334"/>
+          <path d="M0,14 A20,20 0 0 1 0,54" stroke="#e73334"/>
+          <path d="M0,22 A12,12 0 0 1 0,46" stroke="#e73334"/>
+          <path d="M0,30 A4,4 0 0 1 0,38" stroke="#e73334"/>
+
+          <path d="M0,54 A28,28 0 0 1 0,110" stroke="#f49140"/>
+          <path d="M0,62 A20,20 0 0 1 0,102" stroke="#f49140"/>
+          <path d="M0,70 A12,12 0 0 1 0,94" stroke="#f49140"/>
+          <path d="M0,78 A4,4 0 0 1 0,86" stroke="#f49140"/>
+
+          <path d="M0,102 A28,28 0 0 1 0,158" stroke="#40d5e8"/>
+          <path d="M0,110 A20,20 0 0 1 0,150" stroke="#40d5e8"/>
+          <path d="M0,118 A12,12 0 0 1 0,142" stroke="#40d5e8"/>
+          <path d="M0,126 A4,4 0 0 1 0,134" stroke="#40d5e8"/>
+        </g>
+      </pattern>
+    </defs>
+    <rect width="40" height="800" fill="url(#archPatternLeft)"/>
+  </svg>
+  <svg class="side-wave side-wave-right" viewBox="0 0 40 800" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <pattern id="archPatternRight" patternUnits="userSpaceOnUse" width="40" height="180">
+        <g fill="none" stroke-linecap="round" stroke-width="6">
+          <path d="M40,6 A28,28 0 0 0 40,62" stroke="#e73334"/>
+          <path d="M40,14 A20,20 0 0 0 40,54" stroke="#e73334"/>
+          <path d="M40,22 A12,12 0 0 0 40,46" stroke="#e73334"/>
+          <path d="M40,30 A4,4 0 0 0 40,38" stroke="#e73334"/>
+
+          <path d="M40,54 A28,28 0 0 0 40,110" stroke="#f49140"/>
+          <path d="M40,62 A20,20 0 0 0 40,102" stroke="#f49140"/>
+          <path d="M40,70 A12,12 0 0 0 40,94" stroke="#f49140"/>
+          <path d="M40,78 A4,4 0 0 0 40,86" stroke="#f49140"/>
+
+          <path d="M40,102 A28,28 0 0 0 40,158" stroke="#40d5e8"/>
+          <path d="M40,110 A20,20 0 0 0 40,150" stroke="#40d5e8"/>
+          <path d="M40,118 A12,12 0 0 0 40,142" stroke="#40d5e8"/>
+          <path d="M40,126 A4,4 0 0 0 40,134" stroke="#40d5e8"/>
+        </g>
+      </pattern>
+    </defs>
+    <rect width="40" height="800" fill="url(#archPatternRight)"/>
+  </svg>
+
+  <div class="wrap">
+
+  <div class="step-label"><span class="num">1</span>Dados do evento</div>
+  <div class="card" id="eventoCard">
+    <div class="field-row">
+      <div class="field">
+        <label>Data do evento</label>
+        <input type="date" id="eventoData">
+      </div>
+      <div class="field">
+        <label>Local do evento</label>
+        <input type="text" id="eventoLocal" list="locaisList" placeholder="Ex: Buffet Jardim, SP">
+        <datalist id="locaisList"></datalist>
+      </div>
+    </div>
+    <div class="evento-hint">esses dados vão junto com todas as comandas enviadas nesta sessão</div>
+  </div>
+
+  <div class="step-label"><span class="num">2</span>Adicionar comandas</div>
+  <div class="card">
+    <div class="btn-row">
+      <input type="file" id="cameraInput" accept="image/*" capture="environment">
+      <label class="capture-btn" id="cameraBtn" for="cameraInput">📷 Tirar foto</label>
+      <input type="file" id="galleryInput" accept="image/*" multiple>
+      <label class="capture-btn secondary" id="galleryBtn" for="galleryInput">🖼️ Escolher várias</label>
+    </div>
+    <button class="add-item" id="manualBtn" style="margin-top:10px;">+ adicionar comanda manualmente (sem foto)</button>
+    <div id="localModeHint" class="evento-hint" style="display:none;">🔒 modo local ativo — nenhuma chamada de IA será feita, sem custo</div>
+    <div id="status"></div>
+    <div id="errorWrap"></div>
+  </div>
+
+  <div id="comandasSection" style="display:none;">
+    <div class="step-label"><span class="num">3</span>Conferir comandas</div>
+    <div class="card">
+      <div id="comandasList"></div>
+
+      <div class="total-row">
+        <span>Total geral</span>
+        <span id="totalGeral">R$ 0,00</span>
+      </div>
+
+      <button class="save-btn" id="saveBtn">Salvar todas na planilha</button>
+      <div class="empty-hint" style="margin-top:8px;">uma aba do Google vai abrir por um instante para confirmar o envio</div>
+      <div class="stamp-wrap" id="stampWrap"><div class="stamp">ENVIADO ✓</div></div>
+    </div>
+  </div>
+
+  <div class="step-label"><span class="num">4</span>Últimos envios</div>
+  <div class="card">
+    <div id="historyList"><div class="empty-hint">nenhum envio ainda</div></div>
+  </div>
+
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2>Conectar planilha</h2>
+    <p>Cole aqui a URL do Google Apps Script (Web App) da sua planilha.</p>
+    <label>URL do Web App</label>
+    <input type="url" id="webhookInput" placeholder="https://script.google.com/macros/s/.../exec">
+
+    <p style="margin-top:18px;">Chave de API da Anthropic — <strong>necessária para a leitura automática das fotos</strong> neste site. Ela fica salva só neste aparelho (não vai para o GitHub nem para a planilha). Sem chave, use o "Modo local" abaixo e preencha na mão.</p>
+    <label>Chave de API</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off">
+
+    <div style="margin-top:18px;display:flex;align-items:flex-start;gap:8px;">
+      <input type="checkbox" id="localModeInput" style="margin-top:3px;width:auto;">
+      <label for="localModeInput" style="margin:0;font-family:'Poppins',sans-serif;font-size:13px;color:var(--ink);text-transform:none;letter-spacing:0;">Modo local (sem IA) — adiciona comandas em branco para preencher na mão, sem gastar créditos de API. Bom para prototipar.</label>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" id="modalCancel">Cancelar</button>
+      <button class="btn-primary" id="modalSave">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// URL padrão do Web App do Apps Script (opcional). Se preencher aqui, todo aparelho
+// já abre conectado à planilha; pode ser trocada depois pela engrenagem ⚙.
+const DEFAULT_WEBHOOK_URL = '';
+const BATCH_SIZE = 5;          // comandas por chamada à API
+const MAX_IMG_SIDE = 1568;     // maior lado da imagem enviada, em px
+const JPEG_QUALITY = 0.85;
+
+let comandas = [];
+let webhookUrl = null;
+let comandaCounter = 0;
+const hasNativeStorage = typeof window.storage !== 'undefined';
+
+async function storageGet(key, shared){
+  if (hasNativeStorage) {
+    try { return await window.storage.get(key, shared); } catch(e){ return null; }
+  }
+  const raw = localStorage.getItem((shared ? 'shared:' : 'local:') + key);
+  return raw !== null ? { key, value: raw, shared } : null;
+}
+async function storageSet(key, value, shared){
+  if (hasNativeStorage) {
+    try { return await window.storage.set(key, value, shared); } catch(e){ return null; }
+  }
+  localStorage.setItem((shared ? 'shared:' : 'local:') + key, value);
+  return { key, value, shared };
+}
+async function storageList(prefix, shared){
+  if (hasNativeStorage) {
+    try { return await window.storage.list(prefix, shared); } catch(e){ return { keys: [] }; }
+  }
+  const p = (shared ? 'shared:' : 'local:') + (prefix || '');
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if (k.startsWith(p)) keys.push(k.slice(shared ? 7 : 6));
+  }
+  return { keys };
+}
+
+const cameraInput = document.getElementById('cameraInput');
+const cameraBtn = document.getElementById('cameraBtn');
+const galleryInput = document.getElementById('galleryInput');
+const galleryBtn = document.getElementById('galleryBtn');
+const statusEl = document.getElementById('status');
+const errorWrap = document.getElementById('errorWrap');
+const comandasSection = document.getElementById('comandasSection');
+const comandasList = document.getElementById('comandasList');
+const totalGeral = document.getElementById('totalGeral');
+const saveBtn = document.getElementById('saveBtn');
+const stampWrap = document.getElementById('stampWrap');
+const historyList = document.getElementById('historyList');
+const gearBtn = document.getElementById('gearBtn');
+const modalBg = document.getElementById('modalBg');
+const webhookInput = document.getElementById('webhookInput');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const localModeInput = document.getElementById('localModeInput');
+const manualBtn = document.getElementById('manualBtn');
+let localMode = false;
+const eventoData = document.getElementById('eventoData');
+const eventoLocal = document.getElementById('eventoLocal');
+
+manualBtn.addEventListener('click', addManualComanda);
+gearBtn.addEventListener('click', openModal);
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+document.getElementById('modalSave').addEventListener('click', saveWebhook);
+saveBtn.addEventListener('click', sendAllToSheet);
+cameraInput.addEventListener('change', e => handleFiles(e.target.files));
+galleryInput.addEventListener('change', e => handleFiles(e.target.files));
+// dados do evento agora só são salvos no momento do envio (ver sendAllToSheet)
+
+init();
+
+async function init(){
+  try {
+    const cfg = await storageGet('config:webhook', false);
+    if (cfg && cfg.value) webhookUrl = cfg.value;
+  } catch(e){}
+  if (!webhookUrl && DEFAULT_WEBHOOK_URL) webhookUrl = DEFAULT_WEBHOOK_URL;
+  try {
+    const lm = await storageGet('config:localmode', false);
+    localMode = lm ? lm.value === 'true' : false;
+  } catch(e){ localMode = false; }
+  updateLocalModeHint();
+  eventoData.value = dataHojeSP();
+  await loadHistory();
+}
+
+function dataHojeSP(){
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date());
+}
+function agoraSP(){
+  return new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+}
+
+async function saveEventoConfig(){
+  try {
+    await storageSet('config:evento', JSON.stringify({
+      data: eventoData.value, local: eventoLocal.value
+    }), false);
+  } catch(e){  }
+}
+
+async function openModal(){
+  webhookInput.value = webhookUrl || '';
+  localModeInput.checked = localMode;
+  try {
+    const k = await storageGet('config:apikey', false);
+    apiKeyInput.value = k ? k.value : '';
+  } catch(e){ apiKeyInput.value = ''; }
+  modalBg.classList.add('show');
+}
+function closeModal(){ modalBg.classList.remove('show'); }
+async function saveWebhook(){
+  const val = webhookInput.value.trim();
+  if (val) {
+    try { await storageSet('config:webhook', val, false); webhookUrl = val; }
+    catch(e){  }
+  }
+  const key = apiKeyInput.value.trim();
+  try {
+    if (key) await storageSet('config:apikey', key, false);
+    else await storageSet('config:apikey', '', false);
+  } catch(e){  }
+  localMode = localModeInput.checked;
+  try { await storageSet('config:localmode', String(localMode), false); }
+  catch(e){  }
+  updateLocalModeHint();
+  closeModal();
+}
+
+function updateLocalModeHint(){
+  document.getElementById('localModeHint').style.display = localMode ? 'block' : 'none';
+}
+
+function getEvento(){
+  return { data: eventoData.value, local: eventoLocal.value.trim() };
+}
+
+async function handleFiles(fileList){
+  const files = Array.from(fileList || []);
+  if (files.length === 0) return;
+  const ev = getEvento();
+  if (!ev.data || !ev.local) {
+    showError('Preencha a data e o local do evento antes de adicionar comandas.');
+    eventoData.focus();
+    return;
+  }
+  errorWrap.innerHTML = '';
+  cameraInput.disabled = true;
+  galleryInput.disabled = true;
+  cameraBtn.classList.add('disabled');
+  galleryBtn.classList.add('disabled');
+
+  if (localMode) {
+    files.forEach(() => addComanda({ itens: [] }));
+  } else {
+    const keyCfg = await storageGet('config:apikey', false);
+    const temChave = !!(keyCfg && keyCfg.value);
+    if (!temChave && !hasNativeStorage) {
+      // Fora do Claude.ai (ex.: GitHub Pages) a leitura por IA exige chave de API.
+      files.forEach(() => addComanda({ itens: [] }));
+      showError('Para ler as fotos automaticamente, cadastre sua chave de API da Anthropic na engrenagem ⚙ (ou ative o "Modo local"). Adicionei comandas em branco para você preencher na mão.');
+    } else {
+      let lidas = 0;
+      let falhou = false;
+      let detalheErro = '';
+      for (let i = 0; i < files.length; i += BATCH_SIZE){
+        const lote = files.slice(i, i + BATCH_SIZE);
+        setStatus(`Lendo comandas ${i+1}–${i+lote.length} de ${files.length}...`, true);
+        try {
+          const imagens = await Promise.all(lote.map(f => fileToBase64(f)));
+          const resultados = await analyzeImagesBatch(imagens);
+          // garante uma comanda por foto, mesmo se a IA devolver a menos
+          for (let j = 0; j < lote.length; j++) addComanda(resultados[j] || { itens: [] });
+          lidas += lote.length;
+        } catch(err){
+          lote.forEach(() => addComanda({ itens: [] }));
+          falhou = true;
+          detalheErro = err && err.message ? err.message : '';
+          console.error('Falha ao ler lote:', err);
+        }
+      }
+      if (falhou) {
+        const detalhe = detalheErro ? ` (${detalheErro})` : '';
+        showError(`Não consegui ler algumas fotos automaticamente${detalhe}. Para essas, adicionei comandas em branco para você preencher na mão. Se o erro for de chave, confira a engrenagem ⚙.`);
+      }
+    }
+  }
+  setStatus('', false);
+  cameraInput.disabled = false;
+  galleryInput.disabled = false;
+  cameraBtn.classList.remove('disabled');
+  galleryBtn.classList.remove('disabled');
+  cameraInput.value = '';
+  galleryInput.value = '';
+  comandasSection.style.display = 'block';
+  comandasSection.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function addManualComanda(){
+  const ev = getEvento();
+  if (!ev.data || !ev.local) {
+    showError('Preencha a data e o local do evento antes de adicionar comandas.');
+    eventoData.focus();
+    return;
+  }
+  errorWrap.innerHTML = '';
+  addComanda({ itens: [] });
+  comandasSection.style.display = 'block';
+  comandasSection.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// Reduz a foto (maior lado 1568px, JPEG 0.85) para cortar custo e tamanho do envio.
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const original = reader.result;
+      const img = new Image();
+      img.onerror = () => resolve({ data: original.split(',')[1], mediaType: file.type || 'image/jpeg' });
+      img.onload = () => {
+        try {
+          const escala = Math.min(1, MAX_IMG_SIDE / Math.max(img.width, img.height));
+          const w = Math.round(img.width * escala);
+          const h = Math.round(img.height * escala);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const jpeg = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+          resolve({ data: jpeg.split(',')[1], mediaType: 'image/jpeg' });
+        } catch(e){
+          resolve({ data: original.split(',')[1], mediaType: file.type || 'image/jpeg' });
+        }
+      };
+      img.src = original;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function analyzeImagesBatch(imagens){
+  const keyCfg = await storageGet('config:apikey', false);
+  const apiKey = keyCfg && keyCfg.value ? keyCfg.value : null;
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) {
+    headers['x-api-key'] = apiKey;
+    headers['anthropic-version'] = '2023-06-01';
+    headers['anthropic-dangerous-direct-browser-access'] = 'true';
+  }
+
+  const conteudoImagens = imagens.map((img, idx) => ([
+    { type: 'text', text: `Comanda ${idx+1}:` },
+    { type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }
+  ])).flat();
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 4000,
+      system: `Você extrai dados de comandas/pedidos de restaurante a partir de fotos. Cada foto recebida é uma comanda separada e independente, na ordem em que aparecem (Comanda 1, Comanda 2, etc). As comandas têm uma coluna de quantidade vendida e uma coluna de valor — esse valor escrito já é o TOTAL da linha (quantidade vezes o preço unitário), não é o preço unitário individual. Por exemplo, se a linha mostra quantidade 2 e valor 50, isso significa 2 unidades somando R$ 50 no total, e você deve devolver quantidade=2 e valor_total=50. Leia os números exatamente como estão escritos. As comandas também têm caixas marcadas com as siglas CR (crédito), DB (débito), PIX e DN (dinheiro) indicando a forma de pagamento — geralmente uma está circulada, marcada com X, ou destacada. Na base da comanda também costuma haver o nome do cliente. Responda APENAS com um JSON válido, sem markdown, sem texto adicional, no formato exato: {"comandas": [{"pagamento": "Crédito" | "Débito" | "Pix" | "Dinheiro" | "Não identificado", "cliente": string ou null, "itens": [{"nome": string, "quantidade": number, "valor_total": number}]}]}. O array "comandas" deve ter exatamente ${imagens.length} posições, uma para cada foto recebida, na mesma ordem. Quantidade padrão 1 se não estiver escrita. Não invente itens que não estão na comanda. Se não conseguir identificar a forma de pagamento, use "Não identificado". Se não encontrar cliente, use null.`,
+      messages: [{ role: 'user', content: conteudoImagens }]
+    })
+  });
+  let data;
+  try { data = await response.json(); }
+  catch(e){ throw new Error('Resposta inválida da API (HTTP ' + response.status + ')'); }
+  if (data.type === 'error' || !response.ok) {
+    const msg = (data.error && data.error.message) ? data.error.message : ('HTTP ' + response.status);
+    throw new Error('Erro da API: ' + msg);
+  }
+  const textBlock = (data.content || []).find(b => b.type === 'text');
+  if (!textBlock) throw new Error('Sem resposta da IA');
+  // Extrai só o JSON, mesmo que a IA coloque texto ou ``` antes/depois.
+  const txt = textBlock.text;
+  const ini = txt.indexOf('{');
+  const fim = txt.lastIndexOf('}');
+  if (ini === -1 || fim === -1) throw new Error('A IA não devolveu JSON');
+  const parsed = JSON.parse(txt.slice(ini, fim + 1));
+  return parsed.comandas || [];
+}
+
+function addComanda(parsed){
+  const id = 'com_' + (comandaCounter++);
+  const itens = (parsed.itens || []).map((it, idx) => ({
+    id: id + '_it' + idx,
+    nome: it.nome || '',
+    quantidade: it.quantidade || 1,
+    valor_total: it.valor_total || 0
+  }));
+  if (itens.length === 0){
+    itens.push({ id: id + '_it0', nome: '', quantidade: 1, valor_total: 0 });
+  }
+  comandas.push({ id, pagamento: parsed.pagamento || 'Não identificado', cliente: parsed.cliente || '', itens });
+  renderComandas();
+}
+
+function setStatus(msg, loading){
+  statusEl.innerHTML = !msg ? '' : (loading ? `<div class="spinner"></div><span>${msg}</span>` : `<span>${msg}</span>`);
+}
+function showError(msg){
+    errorWrap.innerHTML = `<div class="error-box">${msg}</div>`;
+}
+function formatBRL(n){ return 'R$ ' + (n||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderComandas(){
+  comandasList.innerHTML = comandas.map((c, idx) => {
+    const subtotal = c.itens.reduce((s,i)=> s + (i.valor_total||0), 0);
+    return `
+    <div class="comanda-card" data-comanda="${c.id}">
+      <div class="comanda-head">
+        <span class="comanda-title">Comanda ${idx+1}</span>
+        <button class="del-comanda" data-action="del-comanda" data-comanda="${c.id}">remover comanda ✕</button>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Cliente (opcional)</label>
+          <input type="text" data-field="cliente" data-comanda="${c.id}" value="${escapeHtml(c.cliente)}" placeholder="Ex: Maria">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Forma de pagamento</label>
+          <select data-field="pagamento" data-comanda="${c.id}" class="pagamento-select">
+            <option value="Crédito" ${c.pagamento==='Crédito'?'selected':''}>Crédito (CR)</option>
+            <option value="Débito" ${c.pagamento==='Débito'?'selected':''}>Débito (DB)</option>
+            <option value="Pix" ${c.pagamento==='Pix'?'selected':''}>Pix</option>
+            <option value="Dinheiro" ${c.pagamento==='Dinheiro'?'selected':''}>Dinheiro (DN)</option>
+            <option value="Não identificado" ${c.pagamento==='Não identificado'?'selected':''}>Não identificado</option>
+          </select>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th class="item-name-col">Item</th><th>Qtd</th><th>Valor total</th><th></th></tr></thead>
+        <tbody>
+          ${c.itens.map(it => `
+            <tr data-item="${it.id}" data-comanda="${c.id}">
+              <td class="item-name-col"><input type="text" data-field="nome" data-comanda="${c.id}" data-item="${it.id}" value="${escapeHtml(it.nome)}" placeholder="Nome do item"></td>
+              <td><input type="number" data-field="quantidade" data-comanda="${c.id}" data-item="${it.id}" value="${it.quantidade}" min="0" step="1"></td>
+              <td><input type="number" data-field="valor_total" data-comanda="${c.id}" data-item="${it.id}" value="${it.valor_total}" min="0" step="0.01"></td>
+              <td><button class="del-btn" data-action="del-item" data-comanda="${c.id}" data-item="${it.id}">✕</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      <button class="add-item" data-action="add-item" data-comanda="${c.id}">+ adicionar item</button>
+      <div class="subtotal-row"><span>Subtotal</span><span>${formatBRL(subtotal)}</span></div>
+    </div>`;
+  }).join('') || '<div class="empty-hint">nenhuma comanda adicionada ainda</div>';
+  renderTotalGeral();
+}
+
+comandasList.addEventListener('input', handleFieldChange);
+comandasList.addEventListener('change', handleFieldChange);
+
+function handleFieldChange(e){
+  const t = e.target;
+  const comandaId = t.getAttribute('data-comanda');
+  const itemId = t.getAttribute('data-item');
+  const field = t.getAttribute('data-field');
+  if (!comandaId || !field) return;
+  const comanda = comandas.find(c => c.id === comandaId);
+  if (!comanda) return;
+  if (itemId){
+    const item = comanda.itens.find(i => i.id === itemId);
+    if (!item) return;
+    if (field === 'nome') item.nome = t.value;
+    else item[field] = parseFloat(t.value) || 0;
+    const card = t.closest('.comanda-card');
+    const subtotalEl = card.querySelector('.subtotal-row span:last-child');
+    const subtotal = comanda.itens.reduce((s,i)=> s + (i.valor_total||0), 0);
+    subtotalEl.textContent = formatBRL(subtotal);
+  } else {
+    comanda[field] = t.value;
+  }
+  renderTotalGeral();
+}
+
+comandasList.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.getAttribute('data-action');
+  const comandaId = btn.getAttribute('data-comanda');
+  const comanda = comandas.find(c => c.id === comandaId);
+  if (!comanda) return;
+  if (action === 'del-comanda'){
+    comandas = comandas.filter(c => c.id !== comandaId);
+  } else if (action === 'add-item'){
+    comanda.itens.push({ id: comandaId + '_it' + Date.now(), nome:'', quantidade:1, valor_total:0 });
+  } else if (action === 'del-item'){
+    const itemId = btn.getAttribute('data-item');
+    comanda.itens = comanda.itens.filter(i => i.id !== itemId);
+  }
+  renderComandas();
+});
+
+function renderTotalGeral(){
+  const total = comandas.reduce((sum, c) => sum + c.itens.reduce((s,i)=> s + (i.valor_total||0), 0), 0);
+  totalGeral.textContent = formatBRL(total);
+}
+
+async function sendAllToSheet(){
+  if (!webhookUrl){ openModal(); showError('Configure a URL da planilha (ícone de engrenagem) antes de salvar.'); return; }
+  if (comandas.length === 0){ showError('Adicione ao menos uma comanda antes de salvar.'); return; }
+  const ev = getEvento();
+  if (!ev.data || !ev.local){ showError('Preencha a data e o local do evento.'); return; }
+
+  errorWrap.innerHTML = '';
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Enviando...';
+
+  const payload = {
+    evento: ev,
+    registrado_em: agoraSP(),
+    comandas: comandas.map(c => ({
+      cliente: c.cliente,
+      pagamento: c.pagamento,
+      itens: c.itens.map(i => ({ nome: i.nome, quantidade: i.quantidade, valor_unitario: i.quantidade ? i.valor_total / i.quantidade : 0, valor_total: i.valor_total }))
+    }))
+  };
+
+  const encoded = encodeURIComponent(JSON.stringify(payload));
+  if (encoded.length > 5000 || comandas.length > 8){
+    showError(`Esse envio está grande demais (${comandas.length} comandas de uma vez). Por segurança, envie no máximo 8 comandas por vez — remova algumas, envie, depois adicione o restante e envie de novo.`);
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Salvar todas na planilha';
+    return;
+  }
+
+  const url = webhookUrl + '?payload=' + encoded;
+  const win = window.open(url, '_blank');
+  await finishSend(payload, ev);
+  if (!win) {
+    showManualLinkNotice(url);
+  }
+}
+
+async function finishSend(payload, ev){
+  try {
+    await saveEventoConfig();
+    stampWrap.classList.add('show');
+    for (const c of payload.comandas){
+      await pushHistory(ev, c);
+    }
+    await loadHistory();
+    comandas = [];
+    renderComandas();
+    comandasSection.style.display = 'none';
+  } catch(err){
+        showError('Falha ao enviar para a planilha. Confira a URL configurada.');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Salvar todas na planilha';
+  }
+}
+
+function showManualLinkNotice(url){
+  errorWrap.innerHTML = `<div class="empty-hint">
+    Se a aba de envio não abriu sozinha, <a href="${url}" target="_blank" rel="noopener">toque aqui para abrir manualmente</a> e confirmar.
+  </div>`;
+}
+
+async function pushHistory(ev, comanda){
+  try {
+    const key = 'log:' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    const total = comanda.itens.reduce((s,i)=>s+i.valor_total,0);
+    await storageSet(key, JSON.stringify({
+      quando: new Date().toISOString(), evento: ev, pagamento: comanda.pagamento, total, qtdItens: comanda.itens.length
+    }), false);
+  } catch(e){  }
+}
+
+async function loadHistory(){
+  try {
+    const listRes = await storageList('log:', false);
+    const allKeys = (listRes && listRes.keys) ? listRes.keys : [];
+    await updateLocaisSugeridos(allKeys);
+
+    const keys = allKeys.slice(-8).reverse();
+    if (keys.length === 0){ historyList.innerHTML = '<div class="empty-hint">nenhum envio ainda</div>'; return; }
+    const entries = await Promise.all(keys.map(async k => {
+      try { const r = await storageGet(k, false); return JSON.parse(r.value); }
+      catch(e){ return null; }
+    }));
+    historyList.innerHTML = entries.filter(Boolean).map(e => {
+      const dt = new Date(e.quando);
+      const dtStr = dt.toLocaleDateString('pt-BR', {timeZone:'America/Sao_Paulo'});
+      const localStr = (e.evento && e.evento.local) ? e.evento.local : 'sem local';
+      return `<div class="history-item"><span>${dtStr} · ${localStr}</span><span>${formatBRL(e.total)}</span></div>`;
+    }).join('');
+  } catch(e){
+        historyList.innerHTML = '<div class="empty-hint">nenhum envio ainda</div>';
+  }
+}
+
+async function updateLocaisSugeridos(allKeys){
+  try {
+    const entries = await Promise.all(allKeys.map(async k => {
+      try { const r = await storageGet(k, false); return JSON.parse(r.value); }
+      catch(e){ return null; }
+    }));
+    const vistos = new Map();
+    entries.filter(Boolean).forEach(e => {
+      const local = e.evento && e.evento.local ? e.evento.local.trim() : '';
+      if (!local) return;
+      const chave = local.toLowerCase();
+      if (!vistos.has(chave)) vistos.set(chave, local);
+    });
+    const datalist = document.getElementById('locaisList');
+    datalist.innerHTML = Array.from(vistos.values()).map(l => `<option value="${escapeHtml(l)}"></option>`).join('');
+  } catch(e){  }
+}
+</script>
+</body>
+</html>
