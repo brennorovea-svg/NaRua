@@ -519,10 +519,11 @@ function novoIdComanda(){
   const rnd = () => Math.random().toString(16).slice(2, 10);
   return 'cmd_' + Date.now().toString(16) + '-' + rnd() + '-' + rnd();
 }
-const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbywoYikaK2W9Ugjy_83StvhRALlJ5kgaOMHaAfMN6nRla8klY9LijPN6yMN4sh83Fxx-w/exec';
+const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyCEC_kkgmHXvZ74xPzNZJafpy2KZ5OZUtpvb1Wa7rxPIXbJ1UHShpSiAGJeXVt1i6fEA/exec';
 // URLs de implantações antigas do Apps Script de comandas. Se um aparelho
 // ainda tiver uma delas salva na engrenagem, o app troca sozinho pela atual.
 const WEBHOOK_URLS_ANTIGAS = [
+  'https://script.google.com/macros/s/AKfycbywoYikaK2W9Ugjy_83StvhRALlJ5kgaOMHaAfMN6nRla8klY9LijPN6yMN4sh83Fxx-w/exec',
   'https://script.google.com/macros/s/AKfycby0jXp7ePzyMtJL5Muc2Vvy39ofhdsohRBLUBxrpeRjFPw0Ey5V947BpmvShg6izWuTag/exec',
   'https://script.google.com/macros/s/AKfycbzS_K7'
 ];
@@ -637,32 +638,18 @@ async function init(){
     const cfgToken = await storageGet('config:token', false);
     if (cfgToken && cfgToken.value) webhookToken = cfgToken.value;
   } catch(e){}
-  // config:apimode2 só existe depois que o modo foi escolhido (ou migrado)
-  // já sabendo da leitura pela planilha; antes disso vale a regra antiga.
-  let modoEscolhido = false;
+  // Modo de leitura das fotos. Padrão: "Minha chave de API (pela planilha)".
+  // Só vale outro modo se a pessoa escolheu na engrenagem depois desta versão
+  // (chave config:modoLeitura). Escolhas antigas são ignoradas de propósito.
+  // Dentro do preview do Claude.ai, o padrão continua sendo o automático.
+  apiMode = hasNativeStorage ? 'auto' : 'planilha';
   try {
-    const saved2 = await storageGet('config:apimode2', false);
-    if (saved2 && saved2.value) {
-      apiMode = saved2.value;
-      modoEscolhido = true;
-    } else {
-      const savedMode = await storageGet('config:apimode', false);
-      if (savedMode && savedMode.value) {
-        apiMode = savedMode.value;
-      } else {
-        const legacy = await storageGet('config:localmode', false);
-        apiMode = (legacy && legacy.value === 'true') ? 'manual' : (hasNativeStorage ? 'auto' : 'manual');
-      }
-    }
-  } catch(e){ apiMode = hasNativeStorage ? 'auto' : 'manual'; }
+    const escolhido = await storageGet('config:modoLeitura', false);
+    if (escolhido && escolhido.value) apiMode = escolhido.value;
+  } catch(e){}
   infoServidor = await consultarServidor();
-  // A chave de API não fica mais no aparelho: o modo "Minha chave de API"
-  // agora usa a chave guardada no Apps Script. Apaga qualquer chave antiga
-  // salva aqui e migra quem usava o modo antigo ('own').
+  // A chave de API não fica mais no aparelho: apaga qualquer chave antiga.
   try { await storageSet('config:apikey', '', false); } catch(e){}
-  if (apiMode === 'own') apiMode = 'planilha';
-  // Planilha pronta pra ler fotos e o usuário nunca escolheu um modo: usa ela.
-  if (!modoEscolhido && infoServidor.ia && apiMode !== 'auto') apiMode = 'planilha';
   if (!['auto', 'manual', 'planilha'].includes(apiMode)) apiMode = 'manual';
   if (configuradoPeloLink) {
     const aviso = document.getElementById('configAviso');
@@ -801,9 +788,16 @@ async function openModal(){
   const radio = modeOptions.querySelector(`input[value="${apiMode}"]`);
   if (radio) radio.checked = true;
   modeWarning.style.display = 'none';
+  // Pergunta de novo à planilha se ela já consegue ler fotos — o Apps Script
+  // pode ter sido atualizado depois que o app foi aberto.
+  verificandoServidor = true;
   updateModalModeUI();
   modalBg.classList.add('show');
+  try { infoServidor = await consultarServidor(); } catch(e){}
+  verificandoServidor = false;
+  updateModalModeUI();
 }
+let verificandoServidor = false;
 function closeModal(){ modalBg.classList.remove('show'); }
 async function saveWebhook(){
   const val = webhookInput.value.trim();
@@ -825,8 +819,7 @@ async function saveWebhook(){
   const selected = modeOptions.querySelector('input[name="apiMode"]:checked');
   const newMode = selected ? selected.value : 'manual';
   apiMode = newMode;
-  try { await storageSet('config:apimode', apiMode, false); } catch(e){  }
-  try { await storageSet('config:apimode2', apiMode, false); } catch(e){  }
+  try { await storageSet('config:modoLeitura', apiMode, false); } catch(e){  }
   infoServidor = await consultarServidor();
   updateModeHint();
   closeModal();
@@ -845,7 +838,10 @@ function updateModeHint(){
 function updateModalModeUI(){
   const selected = modeOptions.querySelector('input[name="apiMode"]:checked');
   const val = selected ? selected.value : apiMode;
-  if (val === 'planilha' && !(infoServidor && infoServidor.ia)) {
+  if (val === 'planilha' && verificandoServidor) {
+    modeWarning.textContent = 'Verificando a planilha…';
+    modeWarning.style.display = 'block';
+  } else if (val === 'planilha' && !(infoServidor && infoServidor.ia)) {
     modeWarning.textContent = (infoServidor && infoServidor.erroToken)
       ? 'A planilha pediu um token: preencha o campo Token acima com o mesmo valor do TOKEN do Apps Script.'
       : 'A planilha ainda não está pronta pra ler fotos: atualize o Apps Script pra versão 3 e preencha CHAVE_API_ANTHROPIC no topo do código.';
