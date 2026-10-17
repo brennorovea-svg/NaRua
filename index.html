@@ -153,6 +153,14 @@
   .lote-fill{position:absolute;inset:0;width:0%;background:rgba(0,0,0,0.32);transition:width 1.6s ease;z-index:1;pointer-events:none;}
   .lote-btn.enviado .lote-fill{display:none;}
   .lote-btn.carregando{cursor:default;}
+  .lote-btn.lote-status{cursor:default;background:#fff;}
+  .lote-btn.lote-status:hover{transform:none;box-shadow:3px 3px 0 var(--ink);}
+  .lote-btn.lote-status.carregando{background:#fdecc8;}
+  .lote-btn.lote-status.enviado{background:#e4f5e9;}
+  .lote-btn.falhou{background:#fbecea;border-color:var(--red);color:var(--red);}
+  .lote-falha-detalhe{font-family:'Poppins',sans-serif;font-size:12px;color:var(--red);margin:-2px 0 10px 4px;}
+  .lote-falha-detalhe a{color:var(--red);font-weight:700;}
+  #comandasList.travado{pointer-events:none;opacity:.55;}
 
   .error-box{background:#fbecea;border:2px solid var(--red);color:var(--red);padding:10px 12px;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12.5px;margin-top:12px;}
   .empty-hint{font-family:'Poppins',sans-serif;font-size:12.5px;color:var(--ink-soft);text-align:center;padding:10px 0;}
@@ -330,6 +338,7 @@
       <button class="home-card c-yellow" type="button" data-view="comandas">
         <span class="icon">🧾</span>
         <span class="title">Lançar comandas</span>
+        <span class="badge" id="homeBadgeRascunho" style="display:none;"></span>
       </button>
       <button class="home-card c-orange" type="button" data-view="menu">
         <span class="icon">🍜</span>
@@ -347,6 +356,8 @@
   </div>
 
   <div id="viewComandas" style="display:none;">
+
+  <div id="rascunhoAviso" class="comanda-aviso" style="display:none;margin:0 0 18px;"></div>
 
   <div class="step-label"><span class="num">1</span>Dados do evento</div>
   <div class="card" id="eventoCard">
@@ -395,13 +406,14 @@
 
       <div id="lotesSection" style="display:none;margin-top:14px;">
         <div class="step-label" style="margin-top:6px;"><span class="num">✓</span>Enviar lotes</div>
-        <div class="empty-hint" style="margin-bottom:10px;">toque em cada lote pra enviar (abre e fecha rapidinho); ao tocar no último, o registro é fechado automaticamente</div>
+        <div class="empty-hint" style="margin-bottom:10px;" id="lotesHint"></div>
         <div id="lotesList"></div>
       </div>
 
-      <div class="stamp-wrap" id="stampWrap"><div class="stamp">ENVIADO ✓</div></div>
     </div>
   </div>
+
+  <div class="stamp-wrap" id="stampWrap"><div class="stamp">ENVIADO ✓</div></div>
 
   <div class="step-label"><span class="num">4</span>Último envio</div>
   <div class="card">
@@ -453,6 +465,10 @@
     <label>URL do Web App de compras</label>
     <input type="url" id="comprasWebhookInput" placeholder="https://script.google.com/macros/s/.../exec">
 
+    <p style="margin-top:18px;">Token de acesso da planilha de comandas. Só preencha se você configurou um <strong>TOKEN</strong> nas propriedades do Apps Script — precisa ser igual nos dois lados.</p>
+    <label>Token <span class="label-opcional">(opcional)</span></label>
+    <input type="password" id="tokenInput" placeholder="deixe vazio se não usa" autocomplete="off">
+
     <p style="margin-top:18px;">Como as fotos das comandas devem ser lidas?</p>
     <div class="mode-options" id="modeOptions">
       <label class="mode-option">
@@ -487,6 +503,25 @@ let comandas = [];
 let webhookUrl = null;
 let comprasWebhookUrl = null;
 let comandaCounter = 0;
+let webhookToken = '';
+
+// Monta a URL do Apps Script de comandas, anexando o token (quando configurado).
+// O valor de cada parâmetro vai com encodeURIComponent — o mesmo cálculo usado
+// pra medir o tamanho dos lotes.
+function urlServidor(params){
+  const partes = Object.entries(params).map(([k, v]) => k + '=' + encodeURIComponent(v));
+  if (webhookToken) partes.push('token=' + encodeURIComponent(webhookToken));
+  return webhookUrl + (webhookUrl.includes('?') ? '&' : '?') + partes.join('&');
+}
+
+// ID único e permanente de cada comanda. Vai pra planilha junto com as linhas
+// e é o que permite (1) a planilha ignorar um lote reenviado sem duplicar e
+// (2) o BI contar comandas certo, mesmo sem nome de cliente.
+function novoIdComanda(){
+  if (window.crypto && typeof crypto.randomUUID === 'function') return 'cmd_' + crypto.randomUUID();
+  const rnd = () => Math.random().toString(16).slice(2, 10);
+  return 'cmd_' + Date.now().toString(16) + '-' + rnd() + '-' + rnd();
+}
 const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycby0jXp7ePzyMtJL5Muc2Vvy39ofhdsohRBLUBxrpeRjFPw0Ey5V947BpmvShg6izWuTag/exec';
 const DEFAULT_COMPRAS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzG0MwJ3miFutupkYbY-jIlovE-TkXbVS0qBNRpXTx_No5nbA_67JUOl6orr6042-bjyw/exec';
 const hasNativeStorage = typeof window.storage !== 'undefined';
@@ -593,6 +628,10 @@ async function init(){
   } catch(e){}
   if (!comprasWebhookUrl) comprasWebhookUrl = DEFAULT_COMPRAS_WEBHOOK_URL;
   try {
+    const cfgToken = await storageGet('config:token', false);
+    if (cfgToken && cfgToken.value) webhookToken = cfgToken.value;
+  } catch(e){}
+  try {
     const savedMode = await storageGet('config:apimode', false);
     if (savedMode && savedMode.value) {
       apiMode = savedMode.value;
@@ -614,7 +653,7 @@ async function init(){
   // local storage fica como cache/reserva pra quando não der pra buscar
   // (offline, ou dentro do preview do chat).
   try {
-    const resMenu = await fetch(webhookUrl + '?action=menu');
+    const resMenu = await fetch(urlServidor({ action: 'menu' }));
     if (resMenu.ok) {
       const itensSheet = await resMenu.json();
       if (Array.isArray(itensSheet) && itensSheet.length > 0) {
@@ -625,8 +664,89 @@ async function init(){
   } catch(e){ /* sem sinal ou dentro do chat: segue com o que já tem (local ou padrão do código) */ }
   recalcMaiorPrecoCardapio();
   await loadHistory();
+  await restaurarRascunho();
   showView('home');
 }
+
+// ---------- Rascunho: comandas em conferência sobrevivem a recarregar/fechar a aba ----------
+const RASCUNHO_KEY = 'rascunho:comandas';
+let rascunhoTimer = null;
+
+function salvarRascunho(){
+  clearTimeout(rascunhoTimer);
+  rascunhoTimer = setTimeout(async () => {
+    try {
+      if (comandas.length === 0) {
+        await storageSet(RASCUNHO_KEY, '', false);
+      } else {
+        await storageSet(RASCUNHO_KEY, JSON.stringify({
+          salvoEm: new Date().toISOString(),
+          evento: { data: eventoData.value, local: eventoLocal.value, acrescimo: eventoAcrescimo.value },
+          comandas
+        }), false);
+      }
+    } catch(e){ /* sem espaço ou storage indisponível: segue sem rascunho */ }
+    atualizarIndicadoresRascunho();
+  }, 400);
+}
+
+async function limparRascunho(){
+  clearTimeout(rascunhoTimer);
+  try { await storageSet(RASCUNHO_KEY, '', false); } catch(e){}
+  document.getElementById('rascunhoAviso').style.display = 'none';
+  atualizarIndicadoresRascunho();
+}
+
+function atualizarIndicadoresRascunho(){
+  const badge = document.getElementById('homeBadgeRascunho');
+  if (comandas.length > 0) {
+    badge.textContent = comandas.length === 1 ? '1 pendente' : `${comandas.length} pendentes`;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+    document.getElementById('rascunhoAviso').style.display = 'none';
+  }
+}
+
+async function restaurarRascunho(){
+  let r = null;
+  try {
+    const res = await storageGet(RASCUNHO_KEY, false);
+    if (res && res.value) r = JSON.parse(res.value);
+  } catch(e){ r = null; }
+  if (!r || !Array.isArray(r.comandas) || r.comandas.length === 0) return;
+
+  // rascunhos antigos (antes do ID único) ganham um ID agora
+  comandas = r.comandas.map(c => (c.id && String(c.id).startsWith('cmd_')) ? c : { ...c, id: novoIdComanda() });
+  if (r.evento) {
+    if (r.evento.data) eventoData.value = r.evento.data;
+    if (r.evento.local) eventoLocal.value = r.evento.local;
+    if (r.evento.acrescimo) eventoAcrescimo.value = r.evento.acrescimo;
+  }
+  renderComandas();
+  comandasSection.style.display = 'block';
+
+  const quando = r.salvoEm ? new Date(r.salvoEm) : null;
+  const quandoTxt = quando
+    ? ` (salvas em ${quando.toLocaleDateString('pt-BR', {timeZone:'America/Sao_Paulo'})} às ${quando.toLocaleTimeString('pt-BR', {timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit'})})`
+    : '';
+  const aviso = document.getElementById('rascunhoAviso');
+  aviso.innerHTML = `💾 Recuperei ${comandas.length} comanda${comandas.length > 1 ? 's' : ''} que ainda não ${comandas.length > 1 ? 'foram enviadas' : 'foi enviada'}${escapeHtml(quandoTxt)}. Confira e envie normalmente.
+    <button type="button" id="descartarRascunhoBtn" style="margin-left:6px;background:none;border:none;padding:0;color:var(--red);font-family:'Poppins',sans-serif;font-weight:700;font-size:12px;cursor:pointer;text-decoration:underline;">descartar rascunho</button>`;
+  aviso.style.display = 'block';
+  document.getElementById('descartarRascunhoBtn').addEventListener('click', async () => {
+    if (!confirm('Descartar as comandas recuperadas? Elas ainda não foram para a planilha.')) return;
+    comandas = [];
+    renderComandas();
+    comandasSection.style.display = 'none';
+    resetarTelaDeLotes();
+    await limparRascunho();
+  });
+}
+
+[eventoData, eventoLocal, eventoAcrescimo].forEach(el => el.addEventListener('input', () => {
+  if (comandas.length > 0) salvarRascunho();
+}));
 
 function dataHojeSP(){
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date());
@@ -646,6 +766,7 @@ async function saveEventoConfig(){
 async function openModal(){
   webhookInput.value = webhookUrl || '';
   comprasWebhookInput.value = comprasWebhookUrl || '';
+  document.getElementById('tokenInput').value = webhookToken || '';
   const radio = modeOptions.querySelector(`input[value="${apiMode}"]`);
   if (radio) radio.checked = true;
   try {
@@ -668,6 +789,12 @@ async function saveWebhook(){
     await storageSet('config:comprasWebhook', valCompras, false);
     comprasWebhookUrl = valCompras || null;
   } catch(e){  }
+  const valToken = document.getElementById('tokenInput').value.trim();
+  try {
+    await storageSet('config:token', valToken, false);
+    webhookToken = valToken;
+  } catch(e){  }
+  biDados = null; // força o BI a buscar de novo com a configuração nova
   const selected = modeOptions.querySelector('input[name="apiMode"]:checked');
   const newMode = selected ? selected.value : 'manual';
   const key = apiKeyInput.value.trim();
@@ -720,6 +847,7 @@ function getEvento(){
 async function handleFiles(fileList){
   const files = Array.from(fileList || []);
   if (files.length === 0) return;
+  if (envioEmAndamento()) { showError('Aguarde o envio dos lotes terminar antes de adicionar comandas.'); galleryInput.value = ''; return; }
   const ev = getEvento();
   if (!ev.data || !ev.local) {
     showError('Preencha a data e o local do evento antes de adicionar comandas.');
@@ -744,11 +872,19 @@ async function handleFiles(fileList){
 
     let houveErro = false;
     let ultimoErro = null;
+    let leiturasFaltando = 0;
     for (const grupo of grupos){
       try {
         const imagens = await Promise.all(grupo.map(f => fileToBase64(f)));
         const resultados = await analyzeImagesBatch(imagens);
-        resultados.forEach(parsed => addComanda(parsed));
+        // A IA deve devolver uma leitura por foto. Se vier menos, uma comanda
+        // sumiria em silêncio — completa com comandas em branco e avisa.
+        // Se vier mais, descarta o excedente (não existe foto pra ele).
+        resultados.slice(0, grupo.length).forEach(parsed => addComanda(parsed));
+        for (let i = resultados.length; i < grupo.length; i++){
+          addComanda({ itens: [] });
+          leiturasFaltando++;
+        }
       } catch(err){
         houveErro = true;
         ultimoErro = err;
@@ -758,8 +894,11 @@ async function handleFiles(fileList){
       setProgress(lidas, total);
     }
 
+    if (leiturasFaltando > 0 && !houveErro){
+      showError(`A IA devolveu menos leituras do que fotos enviadas: ${leiturasFaltando} comanda${leiturasFaltando > 1 ? 's ficaram' : ' ficou'} em branco no fim da lista. Confira qual foto faltou e preencha à mão.`);
+    }
     if (houveErro){
-      const detalhe = ultimoErro && ultimoErro.message ? ` (${ultimoErro.message})` : '';
+      const detalhe = ultimoErro && ultimoErro.message ? ` (${escapeHtml(ultimoErro.message)})` : '';
       if (apiMode === 'auto' && !hasNativeStorage) {
         showError(`Não consegui ler as fotos automaticamente${detalhe}. O modo "Automático (Claude.ai)" só funciona dentro do preview do Claude.ai. No ícone de engrenagem ⚙, mude para "Manual" ou "Minha chave de API". Comandas em branco foram adicionadas para você preencher manualmente.`);
       } else if (apiMode === 'own') {
@@ -791,6 +930,7 @@ function resetarTelaDeLotes(){
 }
 
 function addManualComanda(){
+  if (envioEmAndamento()) { showError('Aguarde o envio dos lotes terminar antes de adicionar comandas.'); return; }
   const ev = getEvento();
   if (!ev.data || !ev.local) {
     showError('Preencha a data e o local do evento antes de adicionar comandas.');
@@ -918,7 +1058,7 @@ Esses preços existem só pra te ajudar a não errar a leitura de números, não
 }
 
 function addComanda(parsed){
-  const id = 'com_' + (comandaCounter++);
+  const id = novoIdComanda();
   const itens = (parsed.itens || []).map((it, idx) => tentarPreencherAutomatico({
     id: id + '_it' + idx,
     nome: it.nome || '',
@@ -948,7 +1088,7 @@ function showError(msg){
     errorWrap.innerHTML = `<div class="error-box">${msg}</div>`;
 }
 function formatBRL(n){ return 'R$ ' + (n||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
-function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escapeHtml(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 // Preços de referência do cardápio NARUA (comida asiática de rua), usados só
 // para detectar leituras de comanda claramente fora da curva (ex: IA lendo
@@ -1131,12 +1271,15 @@ function renderComandas(){
     atualizarAlertaComanda(c, card);
     atualizarAvisoComanda(c, card);
   });
+  atualizarIndicadoresRascunho();
+  salvarRascunho();
 }
 
 comandasList.addEventListener('input', handleFieldChange);
 comandasList.addEventListener('change', handleFieldChange);
 
 function handleFieldChange(e){
+  if (envioEmAndamento()) return;
   const t = e.target;
   const comandaId = t.getAttribute('data-comanda');
   const itemId = t.getAttribute('data-item');
@@ -1191,10 +1334,12 @@ function handleFieldChange(e){
     }
   }
   renderTotalGeral();
+  salvarRascunho();
   if (loteState) resetarTelaDeLotes();
 }
 
 comandasList.addEventListener('click', (e) => {
+  if (envioEmAndamento()) return;
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
   const action = btn.getAttribute('data-action');
@@ -1227,6 +1372,7 @@ const IMAGENS_POR_LOTE_LEITURA = 5;
 
 function montarComandasPayload(){
   return comandas.map(c => ({
+    id: c.id,
     numero: c.numero || '',
     cliente: c.cliente,
     pagamento: c.pagamento,
@@ -1254,15 +1400,38 @@ function montarLotes(comandasPayload, ev, registrado_em){
   return lotes;
 }
 
-function montarUrlLote(ev, registrado_em, lote){
-  return webhookUrl + '?payload=' + encodeURIComponent(JSON.stringify({ evento: ev, registrado_em, comandas: lote }));
+function montarUrlLote(ev, registrado_em, lote, confirmado){
+  const params = { payload: JSON.stringify({ evento: ev, registrado_em, comandas: lote }) };
+  if (confirmado) params.formato = 'json';
+  return urlServidor(params);
 }
 
-// Estado do lote atualmente compilado, aguardando confirmação de envio
-// lote a lote pelo usuário.
-let loteState = null; // { ev, registrado_em, comandasPayload, lotes, urls, enviados: Set<number>, carregando: Set<number> }
+// Pergunta ao Apps Script qual versão ele roda. A v2 grava com deduplicação
+// por ID e responde em JSON, então o app consegue confirmar cada lote de
+// verdade. Um Apps Script antigo não conhece a rota "versao" e responde
+// "sem payload" (sem gravar nada) — aí o app cai no envio por link de sempre.
+async function detectarModoEnvio(){
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(urlServidor({ action: 'versao' }), { signal: ctrl.signal });
+    clearTimeout(timer);
+    const j = await res.json();
+    if (j && j.ok && Number(j.versao) >= 2) return 'confirmado';
+    if (j && j.ok === false && j.erro === 'token') return 'token-invalido';
+  } catch(e){ /* sem sinal, Apps Script antigo ou resposta em HTML */ }
+  return 'link';
+}
 
-function compilarLotes(){
+// Estado do lote atualmente compilado.
+// modo 'confirmado': o app envia cada lote via fetch e só marca ✓ quando a
+//   planilha responde {ok:true}. Reenviar é seguro: a planilha ignora IDs
+//   de comanda que já tem.
+// modo 'link': Apps Script antigo — cada lote é um link aberto em aba nova,
+//   sem confirmação (comportamento anterior).
+let loteState = null; // { ev, registrado_em, comandasPayload, lotes, urls, modo, enviados:Set, carregando:Set, falhas:{}, resultados:{}, enviando }
+
+async function compilarLotes(){
   if (!webhookUrl){ openModal(); showError('Configure a URL da planilha (ícone de engrenagem) antes de salvar.'); return; }
   if (comandas.length === 0){ showError('Adicione ao menos uma comanda antes de salvar.'); return; }
   const ev = getEvento();
@@ -1270,13 +1439,27 @@ function compilarLotes(){
 
   errorWrap.innerHTML = '';
   stampWrap.classList.remove('show');
+  compileBtn.disabled = true;
+  const textoOriginal = compileBtn.textContent;
+  compileBtn.textContent = 'Verificando a planilha…';
+
+  const modo = await detectarModoEnvio();
+  compileBtn.disabled = false;
+  compileBtn.textContent = textoOriginal;
+
+  if (modo === 'token-invalido'){
+    showError('A planilha recusou o token configurado. Confira o campo "Token" na engrenagem ⚙ — ele precisa ser igual ao TOKEN das propriedades do Apps Script.');
+    errorWrap.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
 
   const registrado_em = agoraSP();
   const comandasPayload = montarComandasPayload();
   const lotes = montarLotes(comandasPayload, ev, registrado_em);
-  const urls = lotes.map(lote => montarUrlLote(ev, registrado_em, lote));
+  const confirmado = modo === 'confirmado';
+  const urls = lotes.map(lote => montarUrlLote(ev, registrado_em, lote, confirmado));
 
-  loteState = { ev, registrado_em, comandasPayload, lotes, urls, enviados: new Set(), carregando: new Set() };
+  loteState = { ev, registrado_em, comandasPayload, lotes, urls, modo, enviados: new Set(), carregando: new Set(), falhas: {}, resultados: {}, enviando: false };
 
   compileBtn.style.display = 'none';
   document.getElementById('compileHint').style.display = 'none';
@@ -1285,22 +1468,142 @@ function compilarLotes(){
   lotesSection.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
-// Duração da animação "escurecendo" mostrada no botão do lote. É uma
-// estimativa visual (otimista), não uma confirmação real de que a planilha
-// recebeu os dados — como o envio é feito por navegação em aba nova
-// (target="_blank"), esta página não tem como saber quando aquela aba
-// termina de carregar. Serve só pra indicar "ainda tá em andamento".
+// Duração da animação "escurecendo" do modo link. É só visual: nesse modo a
+// página não tem como saber se a aba aberta gravou de fato.
 const LOTE_CARREGANDO_MS = 1800;
+const LOTE_TIMEOUT_MS = 30000;
+
+function rotuloLote(i){
+  const n = loteState.lotes[i].length;
+  return `Lote ${i+1}${loteState.urls.length > 1 ? ` de ${loteState.urls.length}` : ''} · ${n} comanda${n>1?'s':''}`;
+}
 
 function renderLotes(){
   if (!loteState) return;
+  const hintEl = document.getElementById('lotesHint');
+  if (loteState.modo === 'confirmado') {
+    hintEl.textContent = 'a planilha confirma cada lote; se algum falhar, é só tentar de novo — nada é gravado em dobro';
+    renderLotesConfirmado();
+  } else {
+    hintEl.textContent = 'toque em cada lote pra enviar (abre e fecha rapidinho). Atenção: neste modo o app não recebe confirmação da planilha — atualize o Apps Script para a versão 2 para envio confirmado';
+    renderLotesLink();
+  }
+}
+
+function renderLotesConfirmado(){
+  const totalLotes = loteState.urls.length;
+  const pendentes = totalLotes - loteState.enviados.size;
+  const temFalha = Object.keys(loteState.falhas).length > 0;
+
+  const linhas = loteState.urls.map((url, i) => {
+    const enviado = loteState.enviados.has(i);
+    const carregando = loteState.carregando.has(i);
+    const falha = loteState.falhas[i];
+    let statusTxt = 'aguardando';
+    if (enviado) {
+      const r = loteState.resultados[i] || {};
+      statusTxt = '✓ gravado na planilha' + (r.ignoradas ? ` (${r.ignoradas} já estava${r.ignoradas>1?'m':''} lá)` : '');
+    } else if (carregando) statusTxt = 'enviando…';
+    else if (falha) statusTxt = '✗ falhou';
+    const extra = falha && !enviado && !carregando
+      ? `<div class="lote-falha-detalhe">${escapeHtml(falha)} · <a href="${url}" target="_blank" rel="noopener">enviar pelo link</a></div>`
+      : '';
+    return `<div class="lote-btn lote-status${enviado ? ' enviado' : ''}${carregando ? ' carregando' : ''}${falha && !enviado && !carregando ? ' falhou' : ''}" data-idx="${i}">
+      <span>${rotuloLote(i)}</span>
+      <span class="lote-check">${statusTxt}</span>
+    </div>${extra}`;
+  }).join('');
+
+  const botao = pendentes > 0
+    ? `<button class="save-btn" id="enviarLotesBtn" style="margin-top:6px;" ${loteState.enviando ? 'disabled' : ''}>${loteState.enviando ? 'Enviando…' : (temFalha ? `Tentar de novo (${pendentes} lote${pendentes>1?'s':''})` : `Enviar ${pendentes} lote${pendentes>1?'s':''}`)}</button>`
+    : '';
+
+  lotesList.innerHTML = linhas + botao;
+  const btn = document.getElementById('enviarLotesBtn');
+  if (btn) btn.addEventListener('click', enviarLotesConfirmado);
+}
+
+async function enviarUmLote(url){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), LOTE_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    let j;
+    try { j = await res.json(); } catch(e){ throw new Error('a planilha não respondeu em JSON'); }
+    if (!j || j.ok !== true) throw new Error((j && j.erro) ? 'planilha: ' + j.erro : 'resposta inesperada da planilha');
+    return j;
+  } catch(err){
+    if (err.name === 'AbortError') throw new Error('sem resposta em 30 s');
+    if (err instanceof TypeError) throw new Error('sem conexão com a planilha');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Soma do que já foi confirmado pela planilha nesta rodada de envio — sobrevive
+// a uma recompilação (ex.: um lote falhou, o usuário corrigiu algo e compilou
+// de novo só o que faltava), pra o resumo de "último envio" sair completo.
+let envioAcumulado = null; // { lotes, comandas, total }
+
+// Comandas de um lote confirmado saem da lista de conferência (e do rascunho):
+// já estão seguras na planilha, e editar uma delas depois não teria efeito,
+// porque a planilha ignora IDs que já tem.
+function registrarLoteGravado(lote){
+  const ids = new Set(lote.map(c => c.id));
+  envioAcumulado = envioAcumulado || { lotes: 0, comandas: 0, total: 0 };
+  envioAcumulado.lotes += 1;
+  envioAcumulado.comandas += lote.length;
+  envioAcumulado.total += lote.reduce((soma, c) => soma + c.itens.reduce((s, i) => s + (i.valor_total || 0), 0), 0);
+  comandas = comandas.filter(c => !ids.has(c.id));
+  renderComandas();
+}
+
+async function enviarLotesConfirmado(){
+  const st = loteState;
+  if (!st || st.enviando) return;
+  st.enviando = true;
+  comandasList.classList.add('travado');
+  renderLotes();
+  for (let i = 0; i < st.urls.length; i++){
+    if (loteState !== st) break;
+    if (st.enviados.has(i)) continue;
+    st.carregando.add(i);
+    delete st.falhas[i];
+    renderLotes();
+    try {
+      const r = await enviarUmLote(st.urls[i]);
+      st.resultados[i] = r;
+      st.enviados.add(i);
+      registrarLoteGravado(st.lotes[i]);
+    } catch(err){
+      st.falhas[i] = err.message || 'erro desconhecido';
+    }
+    st.carregando.delete(i);
+    if (loteState === st) renderLotes();
+  }
+  st.enviando = false;
+  comandasList.classList.remove('travado');
+  if (loteState !== st) return;
+  renderLotes();
+  if (st.enviados.size === st.urls.length){
+    finalizarEnvio();
+  }
+}
+
+function envioEmAndamento(){
+  return !!(loteState && loteState.enviando);
+}
+
+function renderLotesLink(){
   lotesList.innerHTML = loteState.urls.map((url, i) => {
     const enviado = loteState.enviados.has(i);
     const carregando = loteState.carregando.has(i);
-    const statusTxt = enviado ? '✓ enviado' : (carregando ? 'enviando…' : 'toque pra enviar');
+    const statusTxt = enviado ? '✓ aberto (sem confirmação)' : (carregando ? 'enviando…' : 'toque pra enviar');
     return `<a class="lote-btn${enviado ? ' enviado' : ''}${carregando ? ' carregando' : ''}" href="${url}" target="_blank" rel="noopener" data-idx="${i}">
       <div class="lote-fill"></div>
-      <span>Lote ${i+1}${loteState.urls.length > 1 ? ` de ${loteState.urls.length}` : ''} · ${loteState.lotes[i].length} comanda${loteState.lotes[i].length>1?'s':''}</span>
+      <span>${rotuloLote(i)}</span>
       <span class="lote-check">${statusTxt}</span>
     </a>`;
   }).join('');
@@ -1314,9 +1617,6 @@ function renderLotes(){
       loteState.carregando.add(idx);
       renderLotes();
 
-      // Dispara a transição de largura do preenchimento no próximo frame
-      // (precisa nascer com width:0% e só então ir pra 100%, senão o
-      // navegador não anima a mudança).
       const freshBtn = lotesList.querySelector(`.lote-btn[data-idx="${idx}"]`);
       const fill = freshBtn ? freshBtn.querySelector('.lote-fill') : null;
       if (fill){
@@ -1327,8 +1627,6 @@ function renderLotes(){
         loteState.carregando.delete(idx);
         loteState.enviados.add(idx);
         renderLotes();
-        // Assim que o último lote termina a animação de envio, fecha o
-        // registro sozinho — não existe mais um botão "Concluir" separado.
         if (loteState.enviados.size === loteState.urls.length){
           finalizarEnvio();
         }
@@ -1343,17 +1641,29 @@ function renderLotes(){
 // timeout (ver finalizarEnvio) — nunca reescreve nada na planilha, isso já
 // foi feito lote a lote.
 async function finalizarLocalmente(){
-  const { ev, lotes, urls } = loteState;
-  const comandasEnviadas = lotes.flat();
-  const totalValor = comandasEnviadas.reduce((soma, c) => soma + c.itens.reduce((s,i)=>s+i.valor_total,0), 0);
+  const { ev, lotes, urls, modo } = loteState;
+  let qtdLotes, qtdComandas, totalValor;
+  if (modo === 'confirmado' && envioAcumulado) {
+    qtdLotes = envioAcumulado.lotes;
+    qtdComandas = envioAcumulado.comandas;
+    totalValor = envioAcumulado.total;
+  } else {
+    const comandasEnviadas = lotes.flat();
+    qtdLotes = urls.length;
+    qtdComandas = comandasEnviadas.length;
+    totalValor = comandasEnviadas.reduce((soma, c) => soma + c.itens.reduce((s,i)=>s+i.valor_total,0), 0);
+  }
 
-  await salvarUltimoEnvio(ev, urls.length, comandasEnviadas.length, totalValor);
+  await salvarUltimoEnvio(ev, qtdLotes, qtdComandas, totalValor, modo === 'confirmado');
   await registrarLocalVisto(ev.local);
   await saveEventoConfig();
+  envioAcumulado = null;
+  stampWrap.querySelector('.stamp').textContent = modo === 'confirmado' ? 'GRAVADO NA PLANILHA ✓' : 'ENVIADO (sem confirmação)';
   stampWrap.classList.add('show');
   await loadHistory();
   comandas = [];
   renderComandas();
+  await limparRascunho();
   comandasSection.style.display = 'none';
   lotesSection.style.display = 'none';
   compileBtn.style.display = 'block';
@@ -1390,10 +1700,10 @@ function mostrarErroFinalizacao(){
 
 // Salva só um resumo do envio mais recente (substitui o anterior) — não
 // acumula mais um log por comanda.
-async function salvarUltimoEnvio(ev, lotesCount, comandasCount, totalValor){
+async function salvarUltimoEnvio(ev, lotesCount, comandasCount, totalValor, confirmado){
   try {
     await storageSet('ultimoEnvio', JSON.stringify({
-      quando: new Date().toISOString(), evento: ev, lotes: lotesCount, comandas: comandasCount, total: totalValor
+      quando: new Date().toISOString(), evento: ev, lotes: lotesCount, comandas: comandasCount, total: totalValor, confirmado: !!confirmado
     }), false);
   } catch(e){  }
 }
@@ -1431,8 +1741,8 @@ async function loadHistory(){
       const dtStr = dt.toLocaleDateString('pt-BR', {timeZone:'America/Sao_Paulo'});
       const hrStr = dt.toLocaleTimeString('pt-BR', {timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit'});
       historyList.innerHTML = `<div class="ultimo-envio">
-        <span><strong>Último envio:</strong> ${qtdLotes} lote${qtdLotes>1?'s':''} · ${escapeHtml(local)}</span>
-        <span class="sub">${dtStr} às ${hrStr} · ${formatBRL(e.total || 0)}</span>
+        <span><strong>Último envio:</strong> ${e.comandas || 0} comanda${(e.comandas||0)>1?'s':''} em ${qtdLotes} lote${qtdLotes>1?'s':''} · ${escapeHtml(local)}</span>
+        <span class="sub">${dtStr} às ${hrStr} · ${formatBRL(e.total || 0)} · ${e.confirmado ? 'confirmado pela planilha ✓' : 'sem confirmação da planilha'}</span>
       </div>`;
     }
   } catch(e){
@@ -1532,7 +1842,7 @@ document.getElementById('saveMenuBtn').addEventListener('click', async () => {
     msg.textContent = 'Menu salvo neste aparelho ✓ — toque no botão abaixo pra sincronizar com a planilha';
     msg.classList.add('ok');
     if (webhookUrl && limpo.length > 0) {
-      syncLink.href = webhookUrl + '?action=salvarMenu&itens=' + encodeURIComponent(JSON.stringify(limpo));
+      syncLink.href = urlServidor({ action: 'salvarMenu', itens: JSON.stringify(limpo) });
       syncLink.style.display = 'inline-flex';
     }
   } catch(e){
@@ -1624,9 +1934,10 @@ async function loadBI(force){
   biCarregando = true;
   wrap.innerHTML = `<div class="card"><div class="status"><div class="spinner"></div>Carregando dados da planilha...</div></div>`;
   try {
-    const res = await fetch(webhookUrl + '?action=dados');
+    const res = await fetch(urlServidor({ action: 'dados' }));
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const dados = await res.json();
+    if (dados && dados.ok === false && dados.erro === 'token') throw new Error('a planilha recusou o token — confira o campo Token na engrenagem ⚙ da tela de comandas');
     if (!Array.isArray(dados)) throw new Error('resposta inesperada');
     biDados = dados;
     biUltimaAtualizacao = new Date();
@@ -1768,7 +2079,11 @@ function renderBI(dados){
     totalGeralBI += valor;
     pratosVendidos += qtd;
 
-    const chaveComanda = [row.registrado_em, row.cliente, row.pagamento].join('|');
+    // Linhas gravadas pela versão 2 trazem o ID único da comanda; linhas antigas
+    // (sem ID) caem na chave aproximada de antes.
+    const chaveComanda = (row.comanda_id && String(row.comanda_id).startsWith('cmd_'))
+      ? String(row.comanda_id)
+      : [row.registrado_em, row.cliente, row.pagamento, row.numero_comanda || ''].join('|');
     const info = comandaInfo.get(chaveComanda) || { total: 0, pagamento: row.pagamento || 'não informado' };
     info.total += valor;
     comandaInfo.set(chaveComanda, info);
