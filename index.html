@@ -522,7 +522,13 @@ function novoIdComanda(){
   const rnd = () => Math.random().toString(16).slice(2, 10);
   return 'cmd_' + Date.now().toString(16) + '-' + rnd() + '-' + rnd();
 }
-const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycby0jXp7ePzyMtJL5Muc2Vvy39ofhdsohRBLUBxrpeRjFPw0Ey5V947BpmvShg6izWuTag/exec';
+const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbywoYikaK2W9Ugjy_83StvhRALlJ5kgaOMHaAfMN6nRla8klY9LijPN6yMN4sh83Fxx-w/exec';
+// URLs de implantações antigas do Apps Script de comandas. Se um aparelho
+// ainda tiver uma delas salva na engrenagem, o app troca sozinho pela atual.
+const WEBHOOK_URLS_ANTIGAS = [
+  'https://script.google.com/macros/s/AKfycby0jXp7ePzyMtJL5Muc2Vvy39ofhdsohRBLUBxrpeRjFPw0Ey5V947BpmvShg6izWuTag/exec',
+  'https://script.google.com/macros/s/AKfycbzS_K7'
+];
 const DEFAULT_COMPRAS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzG0MwJ3miFutupkYbY-jIlovE-TkXbVS0qBNRpXTx_No5nbA_67JUOl6orr6042-bjyw/exec';
 const hasNativeStorage = typeof window.storage !== 'undefined';
 
@@ -621,6 +627,10 @@ async function init(){
     const cfg = await storageGet('config:webhook', false);
     if (cfg && cfg.value) webhookUrl = cfg.value;
   } catch(e){}
+  if (webhookUrl && WEBHOOK_URLS_ANTIGAS.some(u => webhookUrl.startsWith(u))) {
+    webhookUrl = DEFAULT_WEBHOOK_URL;
+    try { await storageSet('config:webhook', webhookUrl, false); } catch(e){}
+  }
   if (!webhookUrl) webhookUrl = DEFAULT_WEBHOOK_URL;
   try {
     const cfgCompras = await storageGet('config:comprasWebhook', false);
