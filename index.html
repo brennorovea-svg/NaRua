@@ -335,7 +335,6 @@
   <button class="back-btn" id="backBtn" style="display:none;">← Voltar ao menu</button>
 
   <div id="viewHome">
-    <div id="configAviso" class="comanda-aviso" style="display:none;margin:0 0 16px;"></div>
     <div class="home-grid">
       <button class="home-card c-yellow" type="button" data-view="comandas">
         <span class="icon">🧾</span>
@@ -467,9 +466,6 @@
     <label>URL do Web App de compras</label>
     <input type="url" id="comprasWebhookInput" placeholder="https://script.google.com/macros/s/.../exec">
 
-    <p style="margin-top:18px;">Token de acesso da planilha de comandas. Só preencha se você cadastrou um <strong>TOKEN</strong> nas propriedades do Apps Script — precisa ser igual nos dois lados.</p>
-    <label>Token <span class="label-opcional">(opcional)</span></label>
-    <input type="password" id="tokenInput" placeholder="deixe vazio se não usa" autocomplete="off">
 
     <p style="margin-top:18px;">Como as fotos das comandas devem ser lidas?</p>
     <div class="mode-options" id="modeOptions">
@@ -500,14 +496,12 @@ let comandas = [];
 let webhookUrl = null;
 let comprasWebhookUrl = null;
 let comandaCounter = 0;
-let webhookToken = '';
 
-// Monta a URL do Apps Script de comandas, anexando o token (quando configurado).
+// Monta a URL do Apps Script de comandas.
 // O valor de cada parâmetro vai com encodeURIComponent — o mesmo cálculo usado
 // pra medir o tamanho dos lotes.
 function urlServidor(params){
   const partes = Object.entries(params).map(([k, v]) => k + '=' + encodeURIComponent(v));
-  if (webhookToken) partes.push('token=' + encodeURIComponent(webhookToken));
   return webhookUrl + (webhookUrl.includes('?') ? '&' : '?') + partes.join('&');
 }
 
@@ -598,7 +592,7 @@ function showView(view){
   Object.values(VIEW_IDS).forEach(id => { document.getElementById(id).style.display = 'none'; });
   document.getElementById(VIEW_IDS[view] || VIEW_IDS.home).style.display = 'block';
   backBtn.style.display = view === 'home' ? 'none' : 'inline-flex';
-  gearBtn.style.display = 'flex'; // configurações valem pro app todo (planilha, token, leitura por IA)
+  gearBtn.style.display = 'flex'; // configurações valem pro app todo (planilha e leitura por IA)
   document.getElementById('pageSubtitle').textContent = VIEW_SUBTITLES[view] || VIEW_SUBTITLES.home;
   if (view === 'menu') renderMenuEditor();
   if (view === 'bi') loadBI();
@@ -633,11 +627,6 @@ async function init(){
     if (cfgCompras && cfgCompras.value) comprasWebhookUrl = cfgCompras.value;
   } catch(e){}
   if (!comprasWebhookUrl) comprasWebhookUrl = DEFAULT_COMPRAS_WEBHOOK_URL;
-  const configuradoPeloLink = await aplicarLinkDeConfiguracao();
-  try {
-    const cfgToken = await storageGet('config:token', false);
-    if (cfgToken && cfgToken.value) webhookToken = cfgToken.value;
-  } catch(e){}
   // Modo de leitura das fotos. Padrão: "Minha chave de API (pela planilha)".
   // Só vale outro modo se a pessoa escolheu na engrenagem depois desta versão
   // (chave config:modoLeitura). Escolhas antigas são ignoradas de propósito.
@@ -650,14 +639,8 @@ async function init(){
   infoServidor = await consultarServidor();
   // A chave de API não fica mais no aparelho: apaga qualquer chave antiga.
   try { await storageSet('config:apikey', '', false); } catch(e){}
+  try { await storageSet('config:token', '', false); } catch(e){}
   if (!['auto', 'manual', 'planilha'].includes(apiMode)) apiMode = 'manual';
-  if (configuradoPeloLink) {
-    const aviso = document.getElementById('configAviso');
-    aviso.textContent = infoServidor.ia
-      ? '✅ Aparelho configurado: as fotos serão lidas pela planilha.'
-      : (infoServidor.erroToken ? '⚠️ O link foi aplicado, mas a planilha recusou o token. Confira o TOKEN no Apps Script.' : '✅ Token salvo neste aparelho.');
-    aviso.style.display = 'block';
-  }
   updateModeHint();
   eventoData.value = dataHojeSP();
   try {
@@ -784,7 +767,6 @@ async function saveEventoConfig(){
 async function openModal(){
   webhookInput.value = webhookUrl || '';
   comprasWebhookInput.value = comprasWebhookUrl || '';
-  document.getElementById('tokenInput').value = webhookToken || '';
   const radio = modeOptions.querySelector(`input[value="${apiMode}"]`);
   if (radio) radio.checked = true;
   modeWarning.style.display = 'none';
@@ -809,11 +791,6 @@ async function saveWebhook(){
   try {
     await storageSet('config:comprasWebhook', valCompras, false);
     comprasWebhookUrl = valCompras || null;
-  } catch(e){  }
-  const valToken = document.getElementById('tokenInput').value.trim();
-  try {
-    await storageSet('config:token', valToken, false);
-    webhookToken = valToken;
   } catch(e){  }
   biDados = null; // força o BI a buscar de novo com a configuração nova
   const selected = modeOptions.querySelector('input[name="apiMode"]:checked');
@@ -842,9 +819,15 @@ function updateModalModeUI(){
     modeWarning.textContent = 'Verificando a planilha…';
     modeWarning.style.display = 'block';
   } else if (val === 'planilha' && !(infoServidor && infoServidor.ia)) {
-    modeWarning.textContent = (infoServidor && infoServidor.erroToken)
-      ? 'A planilha pediu um token: preencha o campo Token acima com o mesmo valor do TOKEN do Apps Script.'
-      : 'A planilha ainda não está pronta pra ler fotos: atualize o Apps Script pra versão 3 e preencha CHAVE_API_ANTHROPIC no topo do código.';
+    // Diz exatamente o que falta, com o final da URL pra conferir qual
+    // implantação o app está usando.
+    const fimUrl = webhookUrl ? '…' + webhookUrl.replace(/\/exec.*$/, '').slice(-6) + '/exec' : '(sem URL)';
+    const v = (infoServidor && infoServidor.versao) || 0;
+    modeWarning.textContent = v === 0
+      ? `Não consegui falar com a planilha ${fimUrl}. Confira a URL acima e se a implantação está liberada pra "Qualquer pessoa".`
+      : v < 3
+        ? `A planilha ${fimUrl} está na versão ${v}. Publique a versão 3 nessa implantação (lápis → Nova versão) ou cole acima a URL da implantação que já está na versão 3.`
+        : `A planilha ${fimUrl} está na versão 3, mas sem chave: preencha CHAVE_API_ANTHROPIC no topo do Apps Script e publique uma Nova versão.`;
     modeWarning.style.display = 'block';
   } else if (val === 'auto' && !hasNativeStorage) {
     modeWarning.textContent = 'Você está fora do Claude.ai — o modo automático não vai funcionar aqui. Escolha "Manual" ou "Minha chave de API".';
@@ -1010,10 +993,10 @@ function fileToBase64(file){
 }
 
 // ---------- Planilha: versão, leitura por IA e link de configuração ----------
-let infoServidor = { versao: 0, ia: false, erroToken: false };
+let infoServidor = { versao: 0, ia: false };
 
 async function consultarServidor(){
-  const info = { versao: 0, ia: false, erroToken: false };
+  const info = { versao: 0, ia: false };
   if (!webhookUrl) return info;
   try {
     const ctrl = new AbortController();
@@ -1022,7 +1005,6 @@ async function consultarServidor(){
     clearTimeout(timer);
     const j = await res.json();
     if (j && j.ok) { info.versao = Number(j.versao) || 0; info.ia = !!j.ia; }
-    else if (j && j.erro === 'token') info.erroToken = true;
   } catch(e){ /* offline, script antigo ou resposta em HTML */ }
   return info;
 }
@@ -1037,7 +1019,7 @@ async function lerPelaPlanilha(pedido){
   try {
     res = await fetch(webhookUrl, {
       method: 'POST',
-      body: JSON.stringify({ action: 'ler', token: webhookToken || '', pedido }),
+      body: JSON.stringify({ action: 'ler', pedido }),
       signal: ctrl.signal
     });
   } catch(err){
@@ -1051,7 +1033,6 @@ async function lerPelaPlanilha(pedido){
   catch(e){ throw new Error('a planilha não respondeu em JSON — o Apps Script já está na versão 3?'); }
   if (j && j.ok === false) {
     const mensagens = {
-      'token': 'a planilha pediu um token — preencha o campo Token na engrenagem ⚙',
       'chave-nao-configurada': 'falta preencher CHAVE_API_ANTHROPIC no topo do Apps Script'
     };
     throw new Error(mensagens[j.erro] || ('planilha: ' + j.erro));
@@ -1059,41 +1040,6 @@ async function lerPelaPlanilha(pedido){
   // O Apps Script v3 devolve { ok:true, resposta:<resposta da IA> }
   return (j && j.resposta) ? j.resposta : j;
 }
-
-function base64UrlParaTexto(b64){
-  const normal = b64.replace(/-/g, '+').replace(/_/g, '/');
-  const bin = atob(normal + '==='.slice((normal.length + 3) % 4));
-  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
-}
-function textoParaBase64Url(txt){
-  const bytes = new TextEncoder().encode(txt);
-  let bin = '';
-  bytes.forEach(b => { bin += String.fromCharCode(b); });
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-// Link no formato  https://…/#config=<base64url de {"token":"..."}>.
-// O trecho depois do # não vai pra nenhum servidor; o app lê, salva e apaga
-// da barra de endereço.
-async function aplicarLinkDeConfiguracao(){
-  const m = (location.hash || '').match(/config=([A-Za-z0-9_-]+)/);
-  if (!m) return false;
-  let ok = false;
-  try {
-    const cfg = JSON.parse(base64UrlParaTexto(m[1]));
-    if (cfg && typeof cfg.token === 'string' && cfg.token) {
-      await storageSet('config:token', cfg.token, false);
-      ok = true;
-    }
-    if (cfg && typeof cfg.webhook === 'string' && /^https:\/\/script\.google\.com\//.test(cfg.webhook)) {
-      await storageSet('config:webhook', cfg.webhook, false);
-      webhookUrl = cfg.webhook;
-    }
-  } catch(e){ ok = false; }
-  try { history.replaceState(null, '', location.pathname + location.search); } catch(e){}
-  return ok;
-}
-
 
 async function analyzeImagesBatch(imagens){
   // Só o modo "Automático (Claude.ai)" chama a IA direto do navegador; a
@@ -1508,7 +1454,6 @@ async function detectarModoEnvio(){
     clearTimeout(timer);
     const j = await res.json();
     if (j && j.ok && Number(j.versao) >= 2) return 'confirmado';
-    if (j && j.ok === false && j.erro === 'token') return 'token-invalido';
   } catch(e){ /* sem sinal, Apps Script antigo ou resposta em HTML */ }
   return 'link';
 }
@@ -1537,11 +1482,6 @@ async function compilarLotes(){
   compileBtn.disabled = false;
   compileBtn.textContent = textoOriginal;
 
-  if (modo === 'token-invalido'){
-    showError('A planilha recusou o token configurado. Confira o campo "Token" na engrenagem ⚙ — ele precisa ser igual ao TOKEN das propriedades do Apps Script.');
-    errorWrap.scrollIntoView({behavior:'smooth', block:'center'});
-    return;
-  }
 
   const registrado_em = agoraSP();
   const comandasPayload = montarComandasPayload();
@@ -2027,7 +1967,6 @@ async function loadBI(force){
     const res = await fetch(urlServidor({ action: 'dados' }));
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const dados = await res.json();
-    if (dados && dados.ok === false && dados.erro === 'token') throw new Error('a planilha recusou o token — confira o campo Token na engrenagem ⚙ da tela de comandas');
     if (!Array.isArray(dados)) throw new Error('resposta inesperada');
     biDados = dados;
     biUltimaAtualizacao = new Date();
