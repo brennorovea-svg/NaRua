@@ -170,6 +170,17 @@
   .ultimo-envio strong{color:var(--ink);font-family:'Poppins',sans-serif;}
   .ultimo-envio .sub{font-size:11px;opacity:.75;}
 
+  .login-bg{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;background:var(--bg);}
+  .login-bg.show{display:flex;}
+  .login-card{background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:var(--radius);box-shadow:5px 5px 0 var(--orange2);padding:26px 22px;max-width:380px;width:100%;text-align:center;}
+  .login-card .wordmark{font-family:'Titan One',cursive;font-size:40px;color:var(--paper);-webkit-text-stroke:3px var(--ink);text-shadow:3px 3px 0 var(--ink);}
+  .login-card .wordmark .u{color:var(--orange);}
+  .login-card p{font-size:14px;margin:12px 0 18px;color:var(--ink-soft);}
+  .login-card #googleBtn{display:flex;justify-content:center;min-height:44px;}
+  .login-msg{font-size:13px;margin-top:14px;color:var(--ink-soft);}
+  .login-msg.erro{color:var(--red);font-weight:600;}
+  .conta-box{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:2px solid var(--ink);border-radius:10px;padding:10px 12px;margin:0 0 16px;font-size:13px;color:var(--ink);}
+  .conta-box button{padding:7px 12px;border-radius:8px;border:2px solid var(--ink);background:var(--paper);font-family:'Poppins',sans-serif;font-weight:700;cursor:pointer;font-size:13px;flex-shrink:0;}
   .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
   .modal-bg.show{display:flex;}
   .modal{background:var(--paper);border-radius:14px;padding:22px;max-width:420px;width:100%;max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow-y:auto;border:2px solid var(--ink);box-shadow:6px 6px 0 rgba(0,0,0,0.5);}
@@ -474,8 +485,21 @@
 
 </div>
 
+<div class="login-bg" id="loginBg">
+  <div class="login-card">
+    <div class="wordmark">NAR<span class="u">U</span>A</div>
+    <p>Entre com a sua conta Google para usar o app. Neste aparelho, isso só é pedido uma vez.</p>
+    <div id="googleBtn"></div>
+    <div id="loginMsg" class="login-msg"></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modalBg">
   <div class="modal">
+    <div class="conta-box" id="contaBox" style="display:none;">
+      <span>Conectado como <b id="contaEmail"></b></span>
+      <button type="button" id="sairBtn">Sair</button>
+    </div>
     <h2>Conectar planilha</h2>
     <p>Cole aqui a URL do Google Apps Script (Web App) da sua planilha.</p>
     <label>URL do Web App</label>
@@ -515,11 +539,13 @@ let comandas = [];
 let webhookUrl = null;
 let comprasWebhookUrl = null;
 let comandaCounter = 0;
+let sessaoAtual = null; // { sessao, email, nome } depois do login com Google
 
 // Monta a URL do Apps Script de comandas.
 // O valor de cada parâmetro vai com encodeURIComponent — o mesmo cálculo usado
 // pra medir o tamanho dos lotes.
 function urlServidor(params){
+  if (sessaoAtual) params = { ...params, sessao: sessaoAtual.sessao };
   const partes = Object.entries(params).map(([k, v]) => k + '=' + encodeURIComponent(v));
   return webhookUrl + (webhookUrl.includes('?') ? '&' : '?') + partes.join('&');
 }
@@ -655,7 +681,12 @@ async function init(){
     const escolhido = await storageGet('config:modoLeitura', false);
     if (escolhido && escolhido.value) apiMode = escolhido.value;
   } catch(e){}
+  try {
+    const s = await storageGet('config:sessao', false);
+    if (s && s.value) sessaoAtual = JSON.parse(s.value);
+  } catch(e){ sessaoAtual = null; }
   infoServidor = await consultarServidor();
+  await garantirLogin();
   // A chave de API não fica mais no aparelho: apaga qualquer chave antiga.
   try { await storageSet('config:apikey', '', false); } catch(e){}
   try { await storageSet('config:token', '', false); } catch(e){}
@@ -673,7 +704,7 @@ async function init(){
   // local storage fica como cache/reserva pra quando não der pra buscar
   // (offline, ou dentro do preview do chat).
   try {
-    const resMenu = await fetch(urlServidor({ action: 'menu' }));
+    const resMenu = await fetchServidor(urlServidor({ action: 'menu' }));
     if (resMenu.ok) {
       const itensSheet = await resMenu.json();
       if (Array.isArray(itensSheet) && itensSheet.length > 0) {
@@ -784,6 +815,7 @@ async function saveEventoConfig(){
 }
 
 async function openModal(){
+  mostrarConta();
   webhookInput.value = webhookUrl || '';
   comprasWebhookInput.value = comprasWebhookUrl || '';
   const radio = modeOptions.querySelector(`input[value="${apiMode}"]`);
@@ -1011,11 +1043,144 @@ function fileToBase64(file){
   });
 }
 
+// ---------- Login com Google ----------
+// Com o Apps Script v5 e o ID do cliente Google preenchido lá, o app só abre
+// depois do login. O Google confirma quem é a pessoa; a planilha confere se o
+// e-mail está na aba Acessos e devolve uma sessão, que fica salva neste
+// aparelho até tocar em Sair. Apps Script antigo ou sem ID: o app abre direto.
+const loginBg = document.getElementById('loginBg');
+const loginMsg = document.getElementById('loginMsg');
+let loginResolver = null;
+
+async function guardarSessao(s){
+  sessaoAtual = s;
+  try { await storageSet('config:sessao', s ? JSON.stringify(s) : '', false); } catch(e){}
+}
+
+// Só segue quando houver login válido (ou quando a planilha não pede login).
+async function garantirLogin(){
+  const login = infoServidor && infoServidor.login;
+  if (!login || !login.clientId) {
+    // Planilha sem login, ou sem sinal: segue com a sessão que já tiver.
+    return;
+  }
+  if (sessaoAtual && infoServidor.usuario) {
+    sessaoAtual = { ...sessaoAtual, email: infoServidor.usuario.email, nome: infoServidor.usuario.nome || sessaoAtual.nome };
+    await guardarSessao(sessaoAtual);
+    return;
+  }
+  const msg = sessaoAtual ? 'Sua sessão terminou. Entre de novo.' : '';
+  await guardarSessao(null);
+  await pedirLogin(login.clientId, msg);
+}
+
+function mensagemLogin(texto, tipo){
+  loginMsg.textContent = texto || '';
+  loginMsg.className = 'login-msg' + (tipo ? ' ' + tipo : '');
+}
+
+function carregarGoogle(){
+  return new Promise((resolve, reject) => {
+    if (window.google && google.accounts && google.accounts.id) return resolve();
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('sem conexão com o Google'));
+    document.head.appendChild(s);
+  });
+}
+
+function pedirLogin(clientId, aviso){
+  loginBg.classList.add('show');
+  mensagemLogin(aviso || '', aviso ? 'erro' : '');
+  const pronto = new Promise(resolve => { loginResolver = resolve; });
+  carregarGoogle().then(() => {
+    google.accounts.id.initialize({
+      client_id: clientId,
+      callback: r => entrarComGoogle(r && r.credential),
+      ux_mode: 'popup',
+      auto_select: false
+    });
+    google.accounts.id.renderButton(document.getElementById('googleBtn'), {
+      theme: 'outline', size: 'large', shape: 'pill', text: 'signin_with', locale: 'pt-BR'
+    });
+  }).catch(err => mensagemLogin('Não consegui abrir o login do Google (' + err.message + '). Confira a internet e recarregue a página.', 'erro'));
+  return pronto;
+}
+
+async function entrarComGoogle(credencial){
+  if (!credencial) { mensagemLogin('O Google não devolveu o login. Tente de novo.', 'erro'); return; }
+  mensagemLogin('Conferindo o acesso na planilha…', '');
+  let j;
+  try {
+    const res = await fetch(webhookUrl, { method: 'POST', body: JSON.stringify({ action: 'login', credencial }) });
+    j = await res.json();
+  } catch(e){
+    mensagemLogin('Sem conexão com a planilha. Confira a internet e tente de novo.', 'erro');
+    return;
+  }
+  if (!j || !j.ok) {
+    const erros = {
+      'sem-acesso': `O e-mail ${(j && j.email) || ''} não tem acesso a este app. Peça para incluírem ele na aba Acessos da planilha.`,
+      'email-nao-verificado': 'Essa conta Google ainda não confirmou o e-mail. Use outra conta.',
+      'credencial-invalida': 'Não consegui confirmar o login com o Google. Tente de novo.'
+    };
+    mensagemLogin(erros[j && j.erro] || ('Não deu para entrar (' + ((j && j.erro) || 'resposta inesperada') + ').'), 'erro');
+    return;
+  }
+  await guardarSessao({ sessao: j.sessao, email: j.email, nome: j.nome });
+  infoServidor = { ...infoServidor, usuario: { email: j.email, nome: j.nome } };
+  loginBg.classList.remove('show');
+  mensagemLogin('');
+  if (loginResolver) { const r = loginResolver; loginResolver = null; r(); }
+}
+
+// fetch para o Apps Script de comandas: se a planilha disser que a sessão não
+// vale mais (pessoa tirada da aba Acessos, Sair em outro lugar), pede o login.
+async function fetchServidor(url, opcoes){
+  const res = await fetch(url, opcoes);
+  res.clone().json().then(j => {
+    if (j && j.ok === false && j.erro === 'login') sessaoExpirou();
+  }).catch(() => {});
+  return res;
+}
+
+async function sessaoExpirou(){
+  if (loginBg.classList.contains('show')) return;
+  const login = infoServidor && infoServidor.login;
+  await guardarSessao(null);
+  if (login && login.clientId) pedirLogin(login.clientId, 'Sua sessão terminou. Entre de novo; o que estava na tela continua aqui.');
+  else {
+    infoServidor = await consultarServidor();
+    if (infoServidor.login) pedirLogin(infoServidor.login.clientId, 'Sua sessão terminou. Entre de novo.');
+  }
+}
+
+function mostrarConta(){
+  const box = document.getElementById('contaBox');
+  if (sessaoAtual && sessaoAtual.email) {
+    document.getElementById('contaEmail').textContent = sessaoAtual.email;
+    box.style.display = 'flex';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+document.getElementById('sairBtn').addEventListener('click', async () => {
+  if (!confirm('Sair deste aparelho? Para usar o app de novo, será preciso entrar com a conta Google.')) return;
+  const s = sessaoAtual && sessaoAtual.sessao;
+  await guardarSessao(null);
+  try { await fetch(webhookUrl, { method: 'POST', body: JSON.stringify({ action: 'sair', sessao: s }) }); } catch(e){}
+  try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch(e){}
+  location.reload();
+});
+
 // ---------- Planilha: versão, leitura por IA e link de configuração ----------
 let infoServidor = { versao: 0, ia: false };
 
 async function consultarServidor(){
-  const info = { versao: 0, ia: false };
+  const info = { versao: 0, ia: false, login: null, usuario: null };
   if (!webhookUrl) return info;
   try {
     const ctrl = new AbortController();
@@ -1023,7 +1188,12 @@ async function consultarServidor(){
     const res = await fetch(urlServidor({ action: 'versao' }), { signal: ctrl.signal });
     clearTimeout(timer);
     const j = await res.json();
-    if (j && j.ok) { info.versao = Number(j.versao) || 0; info.ia = !!j.ia; }
+    if (j && j.ok) {
+      info.versao = Number(j.versao) || 0;
+      info.ia = !!j.ia;
+      info.login = j.login || null;
+      info.usuario = j.usuario || null;
+    }
   } catch(e){ /* offline, script antigo ou resposta em HTML */ }
   return info;
 }
@@ -1036,9 +1206,9 @@ async function lerPelaPlanilha(pedido){
   const timer = setTimeout(() => ctrl.abort(), 120000);
   let res;
   try {
-    res = await fetch(webhookUrl, {
+    res = await fetchServidor(webhookUrl, {
       method: 'POST',
-      body: JSON.stringify({ action: 'ler', pedido }),
+      body: JSON.stringify({ action: 'ler', pedido, sessao: sessaoAtual && sessaoAtual.sessao }),
       signal: ctrl.signal
     });
   } catch(err){
@@ -1052,7 +1222,8 @@ async function lerPelaPlanilha(pedido){
   catch(e){ throw new Error('a planilha não respondeu em JSON — o Apps Script já está na versão 3?'); }
   if (j && j.ok === false) {
     const mensagens = {
-      'chave-nao-configurada': 'falta preencher CHAVE_API_ANTHROPIC no topo do Apps Script'
+      'chave-nao-configurada': 'falta preencher CHAVE_API_ANTHROPIC no topo do Apps Script',
+      'login': 'sua sessão terminou; entre com a conta Google e tente de novo'
     };
     throw new Error(mensagens[j.erro] || ('planilha: ' + j.erro));
   }
@@ -1576,7 +1747,7 @@ async function enviarUmLote(url){
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), LOTE_TIMEOUT_MS);
   try {
-    const res = await fetch(url, { signal: ctrl.signal });
+    const res = await fetchServidor(url, { signal: ctrl.signal });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     let j;
     try { j = await res.json(); } catch(e){ throw new Error('a planilha não respondeu em JSON'); }
@@ -2020,7 +2191,7 @@ async function salvarCardapioUmaVez(){
     const timer = setTimeout(() => ctrl.abort(), 30000);
     let res;
     try {
-      res = await fetch(webhookUrl, { method: 'POST', body: JSON.stringify({ action: 'salvarMenu', itens: limpo }), signal: ctrl.signal });
+      res = await fetchServidor(webhookUrl, { method: 'POST', body: JSON.stringify({ action: 'salvarMenu', itens: limpo, sessao: sessaoAtual && sessaoAtual.sessao }), signal: ctrl.signal });
     } finally {
       clearTimeout(timer);
     }
@@ -2115,7 +2286,7 @@ async function loadBI(force){
   biCarregando = true;
   wrap.innerHTML = `<div class="card"><div class="status"><div class="spinner"></div>Carregando dados da planilha...</div></div>`;
   try {
-    const res = await fetch(urlServidor({ action: 'dados' }));
+    const res = await fetchServidor(urlServidor({ action: 'dados' }));
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const dados = await res.json();
     if (!Array.isArray(dados)) throw new Error('resposta inesperada');
