@@ -304,6 +304,53 @@
   .menu-site .field-row:last-child{margin-bottom:0;}
   .menu-check{display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;color:var(--ink);font-size:12.5px;}
   .menu-check input{width:18px;height:18px;margin:0;accent-color:var(--green);}
+  /* Acompanhamento semanal (v7) */
+  .home-card.c-green{background:var(--green);color:#fff;}
+  .sem-filtros-semana{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px;}
+  .sem-filtro{min-width:0;}
+  .sem-chip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:2px solid var(--ink);font-family:'Titan One',cursive;font-size:10px;margin-right:4px;vertical-align:middle;}
+  .sem-chip.x{background:var(--red);color:#fff;}
+  .sem-chip.y{background:var(--cyan);color:var(--ink);}
+  .sem-datas{margin-top:8px;font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-soft);line-height:1.45;background:#fffdf6;border:1.5px dashed var(--line);border-radius:8px;padding:7px 9px;}
+  .sem-datas b{color:var(--ink);}
+  .sem-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
+  .sem-kpi{background:#fffdf6;border:2px solid var(--ink);border-radius:10px;padding:10px 11px 6px;box-shadow:3px 3px 0 rgba(0,0,0,0.25);display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .sem-kpi-rot{font-family:'Poppins',sans-serif;font-size:10.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
+  .sem-kpi-val{font-family:'Titan One',cursive;font-size:19px;color:var(--ink);}
+  .sem-kpi-y{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);min-height:14px;}
+  .sem-spark{width:100%;height:32px;display:block;margin-top:4px;}
+  .sem-delta{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;align-self:flex-start;white-space:nowrap;}
+  .sem-delta.up{background:#e3f6e7;color:var(--green);}
+  .sem-delta.down{background:#fbecea;color:var(--red);}
+  .sem-delta.neutro{background:#ece5d2;color:var(--ink-soft);font-weight:600;}
+  .sem-nota{font-family:'Poppins',sans-serif;font-size:11.5px;color:var(--ink-soft);margin:10px 0 0;line-height:1.45;}
+  .sem-tabela{overflow-x:auto;margin:0 -4px;}
+  .sem-tabela table{width:100%;border-collapse:collapse;font-family:'Poppins',sans-serif;font-size:12.5px;color:var(--ink);min-width:480px;}
+  .sem-tabela th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:700;padding:6px;border-bottom:2px solid var(--ink);white-space:nowrap;}
+  .sem-tabela td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  .sem-tabela .n{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:nowrap;}
+  .sem-tier{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;border:2px solid var(--ink);font-family:'Titan One',cursive;font-size:12px;}
+  .sem-tier.t-S{background:var(--red);color:#fff;}
+  .sem-tier.t-A{background:var(--orange);color:var(--ink);}
+  .sem-tier.t-B{background:var(--cyan);color:var(--ink);}
+  .sem-tier.t-C{background:#d8cfb8;color:var(--ink);}
+  .sem-mov{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;padding:0 5px;border-radius:8px;margin-left:4px;white-space:nowrap;}
+  .sem-mov.up{background:#e3f6e7;color:var(--green);}
+  .sem-mov.down{background:#fbecea;color:var(--red);}
+  .sem-mov.novo{background:#ece5d2;color:var(--ink-soft);}
+  .sem-dois{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;}
+  .sem-donut{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .sem-donut svg{width:110px;height:110px;flex:none;}
+  .sem-leg{display:flex;flex-direction:column;gap:5px;font-family:'Poppins',sans-serif;font-size:12.5px;}
+  .sem-barra{display:grid;grid-template-columns:72px 1fr auto;gap:8px;align-items:center;font-family:'Poppins',sans-serif;font-size:12.5px;margin-bottom:8px;}
+  .sem-barra-v{font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:right;min-width:78px;}
+  .sem-barra-v small{color:var(--ink-soft);font-size:10.5px;}
+  .sem-analise{display:flex;flex-direction:column;gap:10px;font-family:'Poppins',sans-serif;font-size:13px;color:var(--ink);line-height:1.5;}
+  .sem-analise p{margin:0;}
+  .sem-analise ul,.sem-analise ol{margin:4px 0 0;padding-left:20px;}
+  .sem-alerta{border-left:4px solid var(--red);background:#fbecea;padding:7px 10px;border-radius:0 8px 8px 0;font-family:'Poppins',sans-serif;font-size:12.5px;}
+  .sem-positivo{border-left:4px solid var(--green);background:#e3f6e7;padding:7px 10px;border-radius:0 8px 8px 0;}
+  #semAnaliseBtn:disabled{opacity:.6;cursor:wait;}
 </style>
 </head>
 <body>
@@ -382,6 +429,10 @@
       <button class="home-card c-cyan" type="button" data-view="bi">
         <span class="icon">📊</span>
         <span class="title">Inteligência</span>
+      </button>
+      <button class="home-card c-green" type="button" data-view="semanal">
+        <span class="icon">📈</span>
+        <span class="title">Acom. Semanal</span>
       </button>
       <button class="home-card c-red" type="button" data-view="consultarCompras">
         <span class="icon">📦</span>
@@ -480,6 +531,10 @@
 
   <div id="viewBI" style="display:none;">
     <div id="biWrap"></div>
+  </div>
+
+  <div id="viewSemanal" style="display:none;">
+    <div id="semanalWrap"></div>
   </div>
 
   <div id="viewConsultarCompras" style="display:none;">
@@ -636,12 +691,13 @@ const eventoLocal = document.getElementById('eventoLocal');
 const eventoAcrescimo = document.getElementById('eventoAcrescimo');
 
 const backBtn = document.getElementById('backBtn');
-const VIEW_IDS = { home:'viewHome', comandas:'viewComandas', menu:'viewMenu', bi:'viewBI', consultarCompras:'viewConsultarCompras' };
+const VIEW_IDS = { home:'viewHome', comandas:'viewComandas', menu:'viewMenu', bi:'viewBI', semanal:'viewSemanal', consultarCompras:'viewConsultarCompras' };
 const VIEW_SUBTITLES = {
   home: 'Escolha o que você quer fazer',
   comandas: 'Registro de vendas do food truck',
   menu: 'Cardápio do app e do site',
   bi: 'Inteligência do negócio',
+  semanal: 'Acompanhamento semanal',
   consultarCompras: 'Compras registradas em outra planilha'
 };
 function showView(view){
@@ -652,6 +708,7 @@ function showView(view){
   document.getElementById('pageSubtitle').textContent = VIEW_SUBTITLES[view] || VIEW_SUBTITLES.home;
   if (view === 'menu') renderMenuEditor();
   if (view === 'bi') loadBI();
+  if (view === 'semanal') loadSemanal();
   if (view === 'consultarCompras') loadCompras();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -2951,6 +3008,433 @@ function ligarEventosFiltroCompras(){
   });
 }
 
+
+// ---------- Acompanhamento semanal (v7) ----------
+// Compara uma semana (segunda a domingo) com outra, a partir das mesmas linhas
+// da aba Comandas que a Inteligência usa (rota "dados"). Tudo é calculado no
+// aparelho; só a análise escrita chama a IA, pela chave guardada no Apps Script.
+let semLocal = 'todos';
+let semX = null; // segunda-feira (YYYY-MM-DD) da semana analisada
+let semY = null; // segunda-feira da semana de comparação
+const semAnalises = new Map(); // 'local|X|Y' -> análise já gerada nesta sessão
+
+const DIAS_SEMANA_CURTO = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+function isoParaUTC(iso){ const [y, m, d] = iso.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); }
+function utcParaIso(dt){ return dt.toISOString().slice(0, 10); }
+function inicioSemana(iso){
+  const dt = isoParaUTC(iso);
+  const dia = dt.getUTCDay(); // 0 = domingo
+  dt.setUTCDate(dt.getUTCDate() - (dia === 0 ? 6 : dia - 1));
+  return utcParaIso(dt);
+}
+function somarDias(iso, n){ const dt = isoParaUTC(iso); dt.setUTCDate(dt.getUTCDate() + n); return utcParaIso(dt); }
+function formatDataBR(iso){ const p = iso.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
+function rotuloSemana(seg){ return `${formatDataCurta(seg)} a ${formatDataBR(somarDias(seg, 6))}`; }
+function diaSemanaCurto(iso){ return DIAS_SEMANA_CURTO[isoParaUTC(iso).getUTCDay()]; }
+
+const REGEX_BEBIDA = /\b(refri|refrigerante|coca|guarana|fanta|sprite|agua|suco|cerveja|heineken|chopp|cha|lata|bebida|drink|soda|kombucha)\b/;
+function ehBebida(nome){
+  const doMenu = encontrarNoMenu(nome);
+  if (doMenu && doMenu.categoria) return normalizarTexto(doMenu.categoria) === 'bebidas';
+  return REGEX_BEBIDA.test(normalizarTexto(nome));
+}
+
+function chaveDaComanda(row){
+  return (row.comanda_id && String(row.comanda_id).startsWith('cmd_'))
+    ? String(row.comanda_id)
+    : [row.registrado_em, row.cliente, row.pagamento, row.numero_comanda || ''].join('|');
+}
+
+// Indicadores de um conjunto de linhas (uma semana já filtrada pelo evento).
+function resumoSemana(linhas){
+  const comandas = new Map(); // chave -> { total, itens, bebida, pagamento }
+  const eventos = new Map();  // 'data|local' -> { data, local, total, comandas:Set }
+  const itens = new Map();    // nome normalizado -> { nome, qtd, total }
+  const pagamentos = new Map();
+  let total = 0, qtdItens = 0;
+  linhas.forEach(row => {
+    const valor = Number(row.valor_total) || 0;
+    const qtd = Number(row.quantidade) || 0;
+    total += valor; qtdItens += qtd;
+    const ch = chaveDaComanda(row);
+    const c = comandas.get(ch) || { total: 0, itens: 0, bebida: false, pagamento: row.pagamento || 'Não informado' };
+    c.total += valor; c.itens += qtd;
+    if (ehBebida(row.item)) c.bebida = true;
+    comandas.set(ch, c);
+    const data = extrairDataEvento(row.data_evento);
+    const local = row.local || 'sem local';
+    const ke = data + '|' + local;
+    const e = eventos.get(ke) || { data, local, total: 0, comandas: new Set() };
+    e.total += valor; e.comandas.add(ch);
+    eventos.set(ke, e);
+    const kn = normalizarTexto(row.item || 'sem nome');
+    const it = itens.get(kn) || { nome: String(row.item || 'sem nome').trim(), qtd: 0, total: 0 };
+    it.qtd += qtd; it.total += valor;
+    itens.set(kn, it);
+    const pag = row.pagamento || 'Não informado';
+    pagamentos.set(pag, (pagamentos.get(pag) || 0) + valor);
+  });
+  const nComandas = comandas.size;
+  const faixas = [0, 0, 0, 0]; // 1, 2, 3, 4+ itens
+  let comBebida = 0;
+  comandas.forEach(c => {
+    const n = Math.round(c.itens);
+    if (n >= 1) faixas[Math.min(n, 4) - 1]++;
+    if (c.bebida) comBebida++;
+  });
+  return {
+    total, nComandas, qtdItens,
+    ticket: nComandas ? total / nComandas : 0,
+    itensPorComanda: nComandas ? qtdItens / nComandas : 0,
+    pctBebida: nComandas ? comBebida / nComandas * 100 : 0,
+    comBebida,
+    faixas, // contagem de comandas por faixa
+    eventos: Array.from(eventos.values()).sort((a, b) => b.total - a.total),
+    itens: Array.from(itens.values()),
+    pagamentos: Array.from(pagamentos.entries()).sort((a, b) => b[1] - a[1])
+  };
+}
+
+// Tierlist: itens ordenados por faturamento. S = os que somam a primeira metade
+// da receita, A = até 80%, B = até 95%, C = o resto.
+function tierlist(itens, total){
+  let acumulado = 0;
+  return itens.slice().sort((a, b) => b.total - a.total).map(it => {
+    const pct = total > 0 ? it.total / total * 100 : 0;
+    const antes = acumulado;
+    acumulado += pct;
+    const tier = antes < 50 ? 'S' : antes < 80 ? 'A' : antes < 95 ? 'B' : 'C';
+    return { ...it, pct, acumulado, tier, precoMedio: it.qtd > 0 ? it.total / it.qtd : 0 };
+  });
+}
+
+function variacao(a, b){
+  if (!b) return null;
+  return (a - b) / b * 100;
+}
+function tagVariacao(a, b, sufixo){
+  const v = variacao(a, b);
+  if (v === null) return `<span class="sem-delta neutro">sem base</span>`;
+  const dir = v >= 0 ? 'up' : 'down';
+  return `<span class="sem-delta ${dir}">${v >= 0 ? '▲' : '▼'} ${Math.abs(v).toFixed(1).replace('.', ',')}%${sufixo || ''}</span>`;
+}
+// Diferença entre duas porcentagens, em pontos percentuais.
+function tagPontos(dif){
+  const dir = dif >= 0 ? 'up' : 'down';
+  return `<span class="sem-delta ${dir}">${dif >= 0 ? '▲' : '▼'} ${Math.abs(dif).toFixed(1).replace('.', ',')} p.p.</span>`;
+}
+function formatNum(n, casas){ return (n || 0).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }); }
+function formatPct(n){ return formatNum(n, 0) + '%'; }
+
+function sparkline(valores, idxDestaque){
+  const w = 160, h = 32;
+  if (valores.length < 2) return '';
+  const mn = Math.min(...valores), mx = Math.max(...valores);
+  const pts = valores.map((v, i) => [3 + i * (w - 6) / (valores.length - 1), h - 4 - (v - mn) / ((mx - mn) || 1) * (h - 8)]);
+  const linha = pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const d = pts[idxDestaque] || pts[pts.length - 1];
+  return `<svg class="sem-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+    <polygon points="3,${h} ${linha} ${w - 3},${h}" fill="var(--cyan)" opacity=".25"></polygon>
+    <polyline points="${linha}" fill="none" stroke="var(--ink)" stroke-width="1.6" vector-effect="non-scaling-stroke"></polyline>
+    <circle cx="${d[0].toFixed(1)}" cy="${d[1].toFixed(1)}" r="3.2" fill="var(--red)" stroke="var(--ink)" stroke-width="1"></circle></svg>`;
+}
+
+async function loadSemanal(force){
+  const wrap = document.getElementById('semanalWrap');
+  if (biDados && !force){ renderSemanal(biDados); return; }
+  if (biCarregando) return;
+  biCarregando = true;
+  wrap.innerHTML = `<div class="card"><div class="status"><div class="spinner"></div>Carregando dados da planilha...</div></div>`;
+  try {
+    const res = await fetchServidor(urlServidor({ action: 'dados' }));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const dados = await res.json();
+    if (!Array.isArray(dados)) throw new Error((dados && dados.erro === 'login') ? 'sua sessão terminou; entre de novo com a conta Google' : 'resposta inesperada');
+    biDados = dados;
+    biUltimaAtualizacao = new Date();
+    renderSemanal(biDados);
+  } catch(err){
+    wrap.innerHTML = `<div class="card placeholder-card">
+      <span class="icon">⚠️</span>
+      <h2>Não consegui carregar os dados</h2>
+      <p>Detalhe técnico: ${escapeHtml(err.message)}</p>
+      <button class="save-btn" id="semRetryBtn" style="margin-top:14px;">Tentar de novo</button>
+    </div>`;
+    document.getElementById('semRetryBtn').addEventListener('click', () => loadSemanal(true));
+  } finally {
+    biCarregando = false;
+  }
+}
+
+function renderSemanal(dados){
+  const wrap = document.getElementById('semanalWrap');
+  const toolbar = `<div class="bi-toolbar">
+      <span class="bi-updated">${biUltimaAtualizacao ? 'atualizado às ' + biUltimaAtualizacao.toLocaleTimeString('pt-BR') : ''}</span>
+      <button class="bi-refresh" id="semRefreshBtn">↻ Atualizar</button>
+    </div>`;
+  const ligarToolbar = () => document.getElementById('semRefreshBtn').addEventListener('click', () => loadSemanal(true));
+
+  // Só entram linhas com data do evento (sem data não há como saber a semana).
+  const comData = dados.filter(r => extrairDataEvento(r.data_evento));
+  const todosLocais = Array.from(new Set(comData.map(r => r.local || 'sem local'))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  if (semLocal !== 'todos' && !todosLocais.includes(semLocal)) semLocal = 'todos';
+  const doEvento = comData.filter(r => semLocal === 'todos' || (r.local || 'sem local') === semLocal);
+
+  const porSemana = new Map(); // segunda -> linhas
+  doEvento.forEach(r => {
+    const seg = inicioSemana(extrairDataEvento(r.data_evento));
+    if (!porSemana.has(seg)) porSemana.set(seg, []);
+    porSemana.get(seg).push(r);
+  });
+  const semanas = Array.from(porSemana.keys()).sort().reverse(); // mais recente primeiro
+
+  if (semanas.length === 0){
+    wrap.innerHTML = toolbar + `<div class="card placeholder-card">
+      <span class="icon">📈</span>
+      <h2>Sem vendas com data ainda</h2>
+      <p>Assim que houver comandas com data do evento na planilha, o acompanhamento semanal aparece aqui.</p>
+    </div>`;
+    ligarToolbar();
+    return;
+  }
+  // Padrão: a última semana já encerrada (a semana corrente costuma estar incompleta).
+  const semanaAtual = inicioSemana(dataHojeSP());
+  const emAndamento = seg => seg === semanaAtual;
+  if (!semX || !porSemana.has(semX)) semX = semanas.find(s => !emAndamento(s)) || semanas[0];
+  if (!semY || !porSemana.has(semY) || semY === semX) semY = semanas.find(s => s < semX) || semanas.find(s => s !== semX) || null;
+
+  const datasDaSemana = seg => {
+    const dias = new Map(); // data -> locais
+    (porSemana.get(seg) || []).forEach(r => {
+      const d = extrairDataEvento(r.data_evento);
+      if (!dias.has(d)) dias.set(d, new Set());
+      dias.get(d).add(r.local || 'sem local');
+    });
+    return Array.from(dias.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  };
+  const textoDatas = seg => {
+    if (!seg) return 'Só existe uma semana com vendas para este evento.';
+    const dias = datasDaSemana(seg);
+    const lista = dias.map(([d, locais]) => `${diaSemanaCurto(d)} ${formatDataCurta(d)}${semLocal === 'todos' ? ' · ' + Array.from(locais).join(' + ') : ''}`);
+    return `<b>Seg ${formatDataCurta(seg)} a Dom ${formatDataCurta(somarDias(seg, 6))}</b>${emAndamento(seg) ? ' <span class="sem-delta neutro">em andamento</span>' : ''}<br>${dias.length} ${dias.length === 1 ? 'dia de evento' : 'dias de evento'}: ${escapeHtml(lista.join(', '))}`;
+  };
+  const opcoesSemanas = sel => semanas.map(s => `<option value="${s}" ${s === sel ? 'selected' : ''}>Semana de ${rotuloSemana(s)}${emAndamento(s) ? ' (em andamento)' : ''}</option>`).join('');
+  const opcoesLocais = todosLocais.map(l => `<option value="${escapeHtml(l)}" ${semLocal === l ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('');
+
+  const filtros = `<div class="card">
+    <div class="bi-section-title">Filtros</div>
+    <label for="semLocalFiltro">Evento</label>
+    <select id="semLocalFiltro">
+      <option value="todos" ${semLocal === 'todos' ? 'selected' : ''}>Todos os eventos</option>
+      ${opcoesLocais}
+    </select>
+    <div class="sem-filtros-semana">
+      <div class="sem-filtro">
+        <label for="semXFiltro"><span class="sem-chip x">X</span> Semana analisada</label>
+        <select id="semXFiltro">${opcoesSemanas(semX)}</select>
+        <div class="sem-datas">${textoDatas(semX)}</div>
+      </div>
+      <div class="sem-filtro">
+        <label for="semYFiltro"><span class="sem-chip y">Y</span> Comparar com</label>
+        <select id="semYFiltro" ${semY ? '' : 'disabled'}>${semY ? opcoesSemanas(semY) : '<option>—</option>'}</select>
+        <div class="sem-datas">${textoDatas(semY)}</div>
+      </div>
+    </div>
+  </div>`;
+
+  const rx = resumoSemana(porSemana.get(semX) || []);
+  const ry = semY ? resumoSemana(porSemana.get(semY) || []) : null;
+
+  // Linha das últimas 8 semanas até a semana X (semanas sem venda entram como zero).
+  const serie = [];
+  for (let i = 7; i >= 0; i--){
+    const seg = somarDias(semX, -7 * i);
+    serie.push(porSemana.has(seg) ? resumoSemana(porSemana.get(seg)) : null);
+  }
+  const serieDe = campo => serie.map(r => r ? r[campo] : 0);
+
+  const kpi = (rotulo, campo, fmt) => `<div class="sem-kpi">
+      <span class="sem-kpi-rot">${rotulo}</span>
+      <span class="sem-kpi-val">${fmt(rx[campo])}</span>
+      ${ry ? tagVariacao(rx[campo], ry[campo]) : ''}
+      <span class="sem-kpi-y">${ry ? 'Y: ' + fmt(ry[campo]) : ''}</span>
+      ${sparkline(serieDe(campo), 7)}
+    </div>`;
+  const kpis = `<div class="card">
+    <div class="bi-section-title">Indicadores da semana X ${ry ? 'contra a semana Y' : ''}</div>
+    <div class="sem-kpis">
+      ${kpi('Faturamento', 'total', formatBRL)}
+      ${kpi('Comandas', 'nComandas', n => formatNum(n, 0))}
+      ${kpi('Ticket médio', 'ticket', formatBRL)}
+      ${kpi('Itens por comanda', 'itensPorComanda', n => formatNum(n, 2))}
+    </div>
+    <p class="sem-nota">A linha mostra as 8 semanas até a semana X; o ponto vermelho é a semana X.</p>
+  </div>`;
+
+  // Eventos da semana X, com a comparação contra a vez anterior no mesmo local (histórico completo).
+  const totalPorLocalData = new Map();
+  comData.forEach(r => {
+    const k = (r.local || 'sem local') + '|' + extrairDataEvento(r.data_evento);
+    totalPorLocalData.set(k, (totalPorLocalData.get(k) || 0) + (Number(r.valor_total) || 0));
+  });
+  const anteriorNoLocal = (local, data) => {
+    let melhor = null;
+    totalPorLocalData.forEach((t, k) => {
+      const [l, d] = k.split('|');
+      if (l === local && d < data && (!melhor || d > melhor.d)) melhor = { d, t };
+    });
+    return melhor;
+  };
+  const linhasEventos = rx.eventos.map(e => {
+    const ant = anteriorNoLocal(e.local, e.data);
+    const comp = ant ? tagVariacao(e.total, ant.t) : `<span class="sem-delta neutro">primeira vez</span>`;
+    const n = e.comandas.size;
+    return `<tr><td>${diaSemanaCurto(e.data)} ${formatDataCurta(e.data)} · ${escapeHtml(e.local)}</td>
+      <td class="n">${formatBRL(e.total)}</td><td class="n">${n}</td><td class="n">${formatBRL(n ? e.total / n : 0)}</td><td class="n">${comp}</td></tr>`;
+  }).join('');
+  const eventosHTML = `<div class="card">
+    <div class="bi-section-title">Faturamento por evento (semana X)</div>
+    <div class="sem-tabela"><table>
+      <thead><tr><th>Evento</th><th class="n">Faturamento</th><th class="n">Comandas</th><th class="n">Ticket</th><th class="n">vs. última vez no local</th></tr></thead>
+      <tbody>${linhasEventos}</tbody>
+    </table></div>
+  </div>`;
+
+  // Tierlist da semana X, com o tier que o item tinha na semana Y.
+  const tx = tierlist(rx.itens, rx.total);
+  const tierY = new Map(ry ? tierlist(ry.itens, ry.total).map(t => [normalizarTexto(t.nome), t.tier]) : []);
+  const ordemTier = { S: 0, A: 1, B: 2, C: 3 };
+  const linhasTier = tx.map(t => {
+    const ty = tierY.get(normalizarTexto(t.nome));
+    let mov = '';
+    if (ry) {
+      if (!ty) mov = `<span class="sem-mov novo" title="não vendeu na semana Y">novo</span>`;
+      else if (ordemTier[t.tier] < ordemTier[ty]) mov = `<span class="sem-mov up" title="era ${ty} na semana Y">▲ era ${ty}</span>`;
+      else if (ordemTier[t.tier] > ordemTier[ty]) mov = `<span class="sem-mov down" title="era ${ty} na semana Y">▼ era ${ty}</span>`;
+    }
+    return `<tr><td><span class="sem-tier t-${t.tier}">${t.tier}</span></td><td>${escapeHtml(t.nome)} ${mov}</td>
+      <td class="n">${formatNum(t.qtd, 0)}</td><td class="n">${formatBRL(t.total)}</td><td class="n">${formatBRL(t.precoMedio)}</td>
+      <td class="n">${formatNum(t.pct, 1)}%</td><td class="n">${formatPct(t.acumulado)}</td></tr>`;
+  }).join('');
+  const tierHTML = `<div class="card">
+    <div class="bi-section-title">Tierlist do cardápio (semana X)</div>
+    <p class="sem-nota" style="margin-top:-6px;">Itens em ordem de faturamento. <b>S</b>: os que fazem a primeira metade da receita · <b>A</b>: até 80% · <b>B</b>: até 95% · <b>C</b>: o resto. Preço unitário = faturamento ÷ quantidade (média do que foi cobrado).${ry ? ' A seta mostra o tier que o item tinha na semana Y.' : ''}</p>
+    <div class="sem-tabela"><table>
+      <thead><tr><th>Tier</th><th>Item</th><th class="n">Qtd.</th><th class="n">Faturamento</th><th class="n">Preço unit.</th><th class="n">% receita</th><th class="n">Acumulado</th></tr></thead>
+      <tbody>${linhasTier}</tbody>
+    </table></div>
+  </div>`;
+
+  // Bebida por comanda e itens por comanda.
+  const pctFaixa = (r, i) => r.nComandas ? r.faixas[i] / r.nComandas * 100 : 0;
+  const nomesFaixa = ['1 item', '2 itens', '3 itens', '4 ou mais'];
+  const faixasHTML = nomesFaixa.map((nome, i) => `<div class="sem-barra">
+      <span>${nome}</span>
+      <div class="bi-bar-track"><div class="bi-bar-fill" style="width:${Math.max(2, pctFaixa(rx, i))}%"></div></div>
+      <span class="sem-barra-v">${formatPct(pctFaixa(rx, i))}${ry ? ` <small>Y ${formatPct(pctFaixa(ry, i))}</small>` : ''}</span>
+    </div>`).join('');
+  const arco = Math.max(0, Math.min(100, rx.pctBebida));
+  const combosHTML = `<div class="card">
+    <div class="sem-dois">
+      <div>
+        <div class="bi-section-title">Comandas com bebida</div>
+        <div class="sem-donut">
+          <svg viewBox="0 0 42 42" aria-label="${formatPct(arco)} das comandas com bebida">
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#e8e0c8" stroke-width="6"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--cyan)" stroke-width="6" stroke-dasharray="${arco.toFixed(1)} ${(100 - arco).toFixed(1)}" stroke-dashoffset="25"></circle>
+            <text x="21" y="23.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" font-weight="600" fill="#181818">${formatPct(arco)}</text>
+          </svg>
+          <div class="sem-leg">
+            <div><b>${rx.comBebida}</b> de ${rx.nComandas} comandas</div>
+            ${ry ? `<div>Semana Y: <b>${formatPct(ry.pctBebida)}</b></div>${tagPontos(rx.pctBebida - ry.pctBebida)}` : ''}
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="bi-section-title">Itens por comanda</div>
+        ${faixasHTML}
+      </div>
+    </div>
+    <p class="sem-nota">Bebida = item da categoria Bebidas no Menu (ou nome como refrigerante, água, suco, cerveja, chá).</p>
+  </div>`;
+
+  const maxPag = Math.max(1, ...rx.pagamentos.map(p => p[1]));
+  const pagHTML = `<div class="card">
+    <div class="bi-section-title">Formas de pagamento (semana X)</div>
+    ${rx.pagamentos.map(([nome, v]) => `<div class="bi-bar-row">
+      <div class="bi-bar-label"><span class="bi-bar-name">${escapeHtml(nome)}</span><span class="bi-bar-value">${formatBRL(v)} · ${formatPct(rx.total ? v / rx.total * 100 : 0)}</span></div>
+      <div class="bi-bar-track"><div class="bi-bar-fill" style="width:${Math.max(4, v / maxPag * 100)}%"></div></div>
+    </div>`).join('')}
+  </div>`;
+
+  const chaveAnalise = [semLocal, semX, semY || ''].join('|');
+  const analiseHTML = `<div class="card">
+    <div class="bi-section-title">Análise da semana com IA</div>
+    <div id="semAnalise">${semAnalises.has(chaveAnalise) ? htmlAnalise(semAnalises.get(chaveAnalise)) : `<p class="sem-nota" style="margin:0 0 4px;">O Claude lê os números desta tela e escreve o que mudou, o que pede atenção e o que testar na próxima semana. Usa a chave guardada na planilha (custo de centavos por análise).</p>`}</div>
+    <button class="save-btn" id="semAnaliseBtn">${semAnalises.has(chaveAnalise) ? '↻ Gerar de novo' : '✨ Gerar análise'}</button>
+  </div>`;
+
+  wrap.innerHTML = toolbar + filtros + kpis + eventosHTML + tierHTML + combosHTML + pagHTML + analiseHTML;
+  ligarToolbar();
+  document.getElementById('semLocalFiltro').addEventListener('change', e => { semLocal = e.target.value; semX = null; semY = null; renderSemanal(biDados); });
+  document.getElementById('semXFiltro').addEventListener('change', e => { semX = e.target.value; if (semY === semX) semY = null; renderSemanal(biDados); });
+  const selY = document.getElementById('semYFiltro');
+  if (semY) selY.addEventListener('change', e => { semY = e.target.value; renderSemanal(biDados); });
+  document.getElementById('semAnaliseBtn').addEventListener('click', () => gerarAnaliseSemanal(chaveAnalise, rx, ry, tx));
+}
+
+function htmlAnalise(a){
+  const lista = arr => (arr || []).map(s => `<li>${escapeHtml(s)}</li>`).join('');
+  return `<div class="sem-analise">
+    ${a.resumo ? `<p>${escapeHtml(a.resumo)}</p>` : ''}
+    ${(a.atencao || []).length ? `<div class="sem-alerta"><b>Atenção</b><ul>${lista(a.atencao)}</ul></div>` : ''}
+    ${(a.sugestoes || []).length ? `<div><b>O que testar na próxima semana</b><ol>${lista(a.sugestoes)}</ol></div>` : ''}
+    ${a.positivo ? `<div class="sem-positivo"><b>Ponto positivo:</b> ${escapeHtml(a.positivo)}</div>` : ''}
+  </div>`;
+}
+
+async function gerarAnaliseSemanal(chave, rx, ry, tx){
+  const btn = document.getElementById('semAnaliseBtn');
+  const alvo = document.getElementById('semAnalise');
+  btn.disabled = true;
+  btn.textContent = 'Analisando...';
+  const enxuto = r => r && ({
+    faturamento: +r.total.toFixed(2), comandas: r.nComandas, ticket_medio: +r.ticket.toFixed(2),
+    itens_por_comanda: +r.itensPorComanda.toFixed(2), pct_comandas_com_bebida: +r.pctBebida.toFixed(1),
+    comandas_por_qtd_itens: { '1': r.faixas[0], '2': r.faixas[1], '3': r.faixas[2], '4+': r.faixas[3] },
+    eventos: r.eventos.map(e => ({ data: e.data, local: e.local, faturamento: +e.total.toFixed(2), comandas: e.comandas.size })),
+    pagamentos: Object.fromEntries(r.pagamentos.map(([n, v]) => [n, +v.toFixed(2)]))
+  });
+  const resumo = {
+    evento_filtrado: semLocal === 'todos' ? 'todos os eventos' : semLocal,
+    semana_x: { periodo: rotuloSemana(semX), ...enxuto(rx), tierlist: tx.map(t => ({ tier: t.tier, item: t.nome, qtd: t.qtd, faturamento: +t.total.toFixed(2), preco_unit_medio: +t.precoMedio.toFixed(2), pct_receita: +t.pct.toFixed(1) })) },
+    semana_y: ry ? { periodo: rotuloSemana(semY), ...enxuto(ry), tierlist: tierlist(ry.itens, ry.total).map(t => ({ tier: t.tier, item: t.nome, qtd: t.qtd, faturamento: +t.total.toFixed(2) })) } : null
+  };
+  const pedido = {
+    max_tokens: 1500,
+    system: 'Você é um analista de negócios do Narua, food truck de comida asiática de rua em São Paulo que vende em feiras e eventos. Recebe os números de uma semana X e, quando houver, de uma semana Y para comparação. Escreva em português do Brasil, direto, para o dono do food truck, citando números concretos. Não invente dados que não estão no JSON. Responda APENAS com um JSON válido, sem markdown, no formato: {"resumo": "2 a 3 frases sobre o desempenho da semana X e o que explica a variação contra Y", "atencao": ["até 2 pontos que pedem atenção"], "sugestoes": ["3 ações práticas para testar na próxima semana: preço, combo, cardápio, evento"], "positivo": "1 frase com o destaque positivo"}.',
+    messages: [{ role: 'user', content: JSON.stringify(resumo) }]
+  };
+  try {
+    const data = await lerPelaPlanilha(pedido);
+    if (data && data.type === 'error') throw new Error((data.error && data.error.message) || 'erro da IA');
+    const bloco = (data.content || []).find(b => b.type === 'text');
+    if (!bloco) throw new Error('a IA não respondeu');
+    const txt = bloco.text;
+    const ini = txt.indexOf('{'), fim = txt.lastIndexOf('}');
+    if (ini === -1 || fim < ini) throw new Error('resposta da IA fora do formato');
+    const analise = JSON.parse(txt.slice(ini, fim + 1));
+    semAnalises.set(chave, analise);
+    alvo.innerHTML = htmlAnalise(analise);
+    btn.textContent = '↻ Gerar de novo';
+  } catch(err){
+    alvo.innerHTML = `<div class="sem-alerta">Não consegui gerar a análise: ${escapeHtml(err.message)}</div>`;
+    btn.textContent = '✨ Tentar de novo';
+  } finally {
+    btn.disabled = false;
+  }
+}
 
 </script>
 </body>
