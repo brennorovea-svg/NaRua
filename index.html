@@ -365,6 +365,39 @@
   .sem-positivo{border-left:4px solid var(--green);background:#e3f6e7;padding:7px 10px;border-radius:0 8px 8px 0;}
   #semAnaliseBtn:disabled{opacity:.6;cursor:wait;}
   @media (min-width:900px){ #semAnaliseBtn{width:auto;min-width:300px;padding:14px 28px;} }
+  /* v11: 📅 Agenda */
+  .home-card.c-paper{background:var(--paper);color:var(--ink);}
+  input[type=time]{width:100%;padding:10px 11px;border:2px solid var(--ink);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:14px;background:#fff;color:var(--ink);}
+  .agenda-voz{display:flex;gap:10px;align-items:stretch;}
+  .agenda-frase{flex:1;width:100%;min-height:84px;padding:10px 11px;border:2px solid var(--ink);border-radius:8px;font-family:'Poppins',sans-serif;font-size:14px;background:#fff;color:var(--ink);resize:vertical;}
+  .agenda-frase:focus{outline:3px solid var(--orange);outline-offset:1px;}
+  .agenda-mic{flex-shrink:0;width:88px;border:2px solid var(--ink);border-radius:10px;background:var(--red);color:#fff;font-family:'Titan One',cursive;font-size:13px;box-shadow:3px 3px 0 var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+  .agenda-mic .ic{font-size:26px;line-height:1;}
+  .agenda-mic.ouvindo{background:var(--green);animation:agendaPulso 1s ease-in-out infinite;}
+  @keyframes agendaPulso{50%{transform:scale(.95);}}
+  .agenda-check{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink);margin:0;cursor:pointer;}
+  .agenda-check input{width:18px;height:18px;accent-color:var(--red);}
+  .agenda-erro{margin-top:12px;border-left:4px solid var(--red);background:#fbecea;padding:8px 10px;border-radius:0 8px 8px 0;font-family:'Poppins',sans-serif;font-size:12.5px;font-weight:600;color:#8c1d1d;}
+  .agenda-avisos ul{margin:4px 0 0;padding-left:18px;}
+  .agenda-item{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:10px 0;border-bottom:1px dashed var(--line);font-family:'Poppins',sans-serif;font-size:13px;}
+  .agenda-item:last-child{border-bottom:none;}
+  .agenda-item .quando{font-family:'IBM Plex Mono',monospace;font-weight:600;min-width:96px;}
+  .agenda-item .onde{flex:1;min-width:150px;font-weight:600;}
+  .agenda-item .onde small{display:block;font-weight:400;color:var(--ink-soft);font-size:11.5px;}
+  .agenda-item.cancelado .quando,.agenda-item.cancelado .onde{text-decoration:line-through;color:var(--ink-soft);}
+  .agenda-tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;border:1.5px solid var(--ink);background:#fff;white-space:nowrap;}
+  .agenda-tag.site{background:#dff7fa;}
+  .agenda-tag.fixo{background:#fdecc8;}
+  .agenda-tag.canc{background:#fbecea;color:var(--red);border-color:var(--red);}
+  .agenda-acoes{display:flex;gap:6px;flex-wrap:wrap;}
+  .agenda-mini{border:2px solid var(--ink);background:#fff;color:var(--ink);border-radius:8px;padding:5px 9px;font-family:'Poppins',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer;}
+  .agenda-mini:hover{background:var(--orange);}
+  .agenda-sub{font-family:'Poppins',sans-serif;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin:14px 0 2px;}
+  .agenda-sub:first-child{margin-top:0;}
+  .agenda-vazio{font-family:'Poppins',sans-serif;font-size:12.5px;color:var(--ink-soft);}
+  .agenda-sugestao{margin-top:10px;font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .agenda-chip{border:2px solid var(--ink);background:var(--orange);color:var(--ink);border-radius:20px;padding:5px 12px;font-family:'Poppins',sans-serif;font-weight:700;font-size:12px;cursor:pointer;}
+  .agenda-editando{font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;color:var(--red);margin-bottom:10px;}
 </style>
 </head>
 <body>
@@ -448,6 +481,10 @@
         <span class="icon">📈</span>
         <span class="title">Acom. Semanal</span>
       </button>
+      <button class="home-card c-paper" type="button" data-view="agenda">
+        <span class="icon">📅</span>
+        <span class="title">Agenda</span>
+      </button>
       <button class="home-card c-red" type="button" data-view="consultarCompras">
         <span class="icon">📦</span>
         <span class="title">Consultar compras</span>
@@ -476,6 +513,7 @@
         <input type="number" id="eventoAcrescimo" min="0" step="0.5" placeholder="Ex: 10">
       </div>
     </div>
+    <div id="agendaSugestao" class="agenda-sugestao" style="display:none;"></div>
     <div class="evento-hint">esses dados vão junto com todas as comandas enviadas nesta sessão. O % de acréscimo é só informativo — vai junto pra planilha, mas não muda o valor de nenhum item.</div>
   </div>
 
@@ -549,6 +587,86 @@
 
   <div id="viewSemanal" style="display:none;">
     <div id="semanalWrap"></div>
+  </div>
+
+  <div id="viewAgenda" style="display:none;">
+    <div id="agendaAvisoVersao" class="card" style="display:none;"></div>
+
+    <div class="step-label"><span class="num">1</span>Falar ou escrever</div>
+    <div class="card">
+      <div class="agenda-voz">
+        <button type="button" class="agenda-mic" id="agMicBtn"><span class="ic">🎤</span><span id="agMicTxt">Falar</span></button>
+        <textarea id="agFrase" class="agenda-frase" placeholder="Ex.: &quot;Domingo dia 2 vamos na feira da Praça X, Rua tal 100, Caieiras, das 10 às 18&quot; ou &quot;sábado dia 31 não vamos na 7 de setembro&quot;"></textarea>
+      </div>
+      <button class="save-btn" id="agPreencherBtn" type="button">✨ Preencher os campos</button>
+      <div id="agVozMsg" class="save-msg"></div>
+      <div class="evento-hint" id="agVozDica">Toque em 🎤, fale e espere: os campos abaixo são preenchidos sozinhos para você conferir. Também dá para escrever aqui, ou pular esta parte e preencher os campos à mão.</div>
+    </div>
+
+    <div class="step-label"><span class="num">2</span>Conferir e salvar</div>
+    <div class="card" id="agForm">
+      <div id="agEditando" class="agenda-editando" style="display:none;"></div>
+      <div class="field-row alinhar-base">
+        <div class="field" style="flex:1 1 140px;">
+          <label for="agData">Data</label>
+          <input type="date" id="agData">
+        </div>
+        <div class="field" style="flex:1 1 150px;">
+          <label class="agenda-check" for="agRepetir"><input type="checkbox" id="agRepetir"> 🔁 Toda semana</label>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field" style="flex:1 1 180px;">
+          <label for="agLocal">Local <span class="label-opcional">(igual ao das comandas)</span></label>
+          <input type="text" id="agLocal" list="agLocaisList" placeholder="Ex: 7 de setembro">
+          <datalist id="agLocaisList"></datalist>
+        </div>
+        <div class="field" style="flex:1 1 180px;">
+          <label for="agEvento">Nome do evento <span class="label-opcional">(opcional)</span></label>
+          <input type="text" id="agEvento" placeholder="Ex: Feira de Natal">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="agEndereco">Endereço <span class="label-opcional">(vai para o mapa do site)</span></label>
+          <input type="text" id="agEndereco" placeholder="Rua, número, bairro, cidade">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field" style="flex:1 1 100px;">
+          <label for="agInicio">Início <span class="label-opcional">(opcional)</span></label>
+          <input type="time" id="agInicio">
+        </div>
+        <div class="field" style="flex:1 1 100px;">
+          <label for="agFim">Fim <span class="label-opcional">(opcional)</span></label>
+          <input type="time" id="agFim">
+        </div>
+        <div class="field" style="flex:1 1 170px;">
+          <label for="agStatus">Situação</label>
+          <select id="agStatus">
+            <option value="Confirmado">Confirmado</option>
+            <option value="Cancelado">Cancelado (não vamos)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="agAviso">Aviso no site <span class="label-opcional">(opcional, os clientes veem)</span></label>
+          <input type="text" id="agAviso" placeholder="Ex: hoje com yakissoba vegano">
+        </div>
+      </div>
+      <label class="agenda-check" for="agMostrar"><input type="checkbox" id="agMostrar" checked> 🌐 Mostrar no site ("Onde estamos")</label>
+      <div id="agAvisos"></div>
+      <button class="save-btn" id="agSalvarBtn" type="button">Salvar evento</button>
+      <button class="add-item" id="agLimparBtn" type="button">Limpar e começar outro</button>
+      <div id="agSalvarMsg" class="save-msg"></div>
+    </div>
+
+    <div class="step-label">Próximos 14 dias</div>
+    <div class="card" id="agProximos"><div class="agenda-vazio">Carregando a agenda...</div></div>
+
+    <div class="step-label">Registros da agenda</div>
+    <div class="card" id="agLista"><div class="agenda-vazio">Carregando...</div></div>
   </div>
 
   <div id="viewConsultarCompras" style="display:none;">
@@ -716,13 +834,14 @@ const eventoLocal = document.getElementById('eventoLocal');
 const eventoAcrescimo = document.getElementById('eventoAcrescimo');
 
 const backBtn = document.getElementById('backBtn');
-const VIEW_IDS = { home:'viewHome', comandas:'viewComandas', menu:'viewMenu', bi:'viewBI', semanal:'viewSemanal', consultarCompras:'viewConsultarCompras' };
+const VIEW_IDS = { home:'viewHome', comandas:'viewComandas', menu:'viewMenu', bi:'viewBI', semanal:'viewSemanal', agenda:'viewAgenda', consultarCompras:'viewConsultarCompras' };
 const VIEW_SUBTITLES = {
   home: 'Escolha o que você quer fazer',
   comandas: 'Registro de vendas do food truck',
   menu: 'Cardápio do app e do site',
   bi: 'Inteligência do negócio',
   semanal: 'Acompanhamento semanal',
+  agenda: 'Onde o food truck vai estar',
   consultarCompras: 'Compras registradas em outra planilha'
 };
 function showView(view){
@@ -734,6 +853,8 @@ function showView(view){
   if (view === 'menu') renderMenuEditor();
   if (view === 'bi') loadBI();
   if (view === 'semanal') loadSemanal();
+  if (view === 'agenda') loadAgenda();
+  if (view === 'comandas') sugerirLocalDaAgenda();
   document.querySelector('.wrap').classList.toggle('largo', view === 'semanal' || view === 'bi');
   if (view === 'consultarCompras') loadCompras();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3512,6 +3633,507 @@ async function gerarAnaliseSemanal(chave, rx, ry, tx){
     btn.disabled = false;
   }
 }
+
+
+// ---------- 📅 Agenda (v11) ----------
+// Lê e grava a aba Eventos da planilha (Apps Script v8), a mesma que o site
+// mostra em "Onde estamos". Dá para falar o evento (reconhecimento de voz do
+// navegador + IA da planilha para separar os campos) ou preencher à mão.
+let agendaEventos = null;   // linhas da aba Eventos
+let agendaHoje = null;      // AAAA-MM-DD no fuso de São Paulo
+let agendaPromessa = null;
+let agendaEditando = null;  // ID da linha em edição (null = evento novo)
+let agendaFraseUsada = '';  // frase que preencheu o formulário (vai para "Frase falada")
+let agendaAvisosVistos = ''; // avisos já mostrados: o segundo toque salva assim mesmo
+let agendaIniciada = false;
+const DIAS_SEMANA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+const DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+function chaveLocal(s){
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+function somarDias(iso, n){
+  const d = new Date(iso + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function diaDaSemana(iso){ return new Date(iso + 'T12:00:00Z').getUTCDay(); }
+function rotuloDia(iso){ const p = iso.split('-'); return `${DIAS_CURTOS[diaDaSemana(iso)]} ${p[2]}/${p[1]}`; }
+
+async function carregarEventos(force){
+  if (agendaEventos && !force) return agendaEventos;
+  if (agendaPromessa) return agendaPromessa;
+  agendaPromessa = (async () => {
+    const res = await fetchServidor(urlServidor({ action: 'eventos' }));
+    let j;
+    try { j = await res.json(); } catch(e){ throw new Error('a planilha não respondeu em JSON'); }
+    if (!j || j.ok !== true) {
+      throw new Error(j && j.erro === 'login' ? 'sua sessão terminou; entre de novo com a conta Google' : ((j && j.erro) || 'resposta inesperada da planilha'));
+    }
+    agendaEventos = Array.isArray(j.eventos) ? j.eventos : [];
+    agendaHoje = j.hoje || dataHojeSP();
+    return agendaEventos;
+  })();
+  try { return await agendaPromessa; } finally { agendaPromessa = null; }
+}
+
+// Datas em que o food truck vai estar em algum lugar, de "de" até "de + dias - 1".
+// Mesmas regras do site: "Toda semana" repete no dia da semana da Data, a partir
+// dela; linha Cancelada de um dia tira só aquele dia; linha avulsa no mesmo
+// local e dia substitui a fixa. Inclui eventos que não aparecem no site.
+function ocorrenciasAgenda(eventos, de, dias){
+  const avulsos = new Map(), cancelados = new Set(), fixos = [];
+  const chave = (local, data) => chaveLocal(local) + '|' + data;
+  const ate = somarDias(de, dias - 1);
+  (eventos || []).forEach(ev => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ev.data || '')) return;
+    if (ev.status === 'Cancelado') { if (!ev.repetir) cancelados.add(chave(ev.local, ev.data)); return; }
+    if (ev.repetir) fixos.push(ev);
+    else if (ev.data >= de && ev.data <= ate) avulsos.set(chave(ev.local, ev.data), ev);
+  });
+  const lista = [];
+  avulsos.forEach((ev, k) => lista.push({ data: ev.data, ev, fixo: false, cancelado: cancelados.has(k) }));
+  for (let n = 0; n < dias; n++) {
+    const d = somarDias(de, n);
+    fixos.forEach(f => {
+      if (d < f.data || diaDaSemana(d) !== diaDaSemana(f.data)) return;
+      const k = chave(f.local, d);
+      if (avulsos.has(k)) return;
+      lista.push({ data: d, ev: f, fixo: true, cancelado: cancelados.has(k) });
+    });
+  }
+  return lista.sort((a, b) => (a.data + (a.ev.inicio || '')).localeCompare(b.data + (b.ev.inicio || '')));
+}
+
+// Locais já usados (agenda, comandas carregadas e envios deste aparelho), com
+// o endereço mais recente que a agenda tem para cada um.
+async function locaisConhecidos(){
+  const mapa = new Map();
+  const add = (local, endereco) => {
+    const nome = String(local || '').trim();
+    if (!nome) return;
+    const k = chaveLocal(nome);
+    const atual = mapa.get(k);
+    if (!atual) mapa.set(k, { local: nome, endereco: endereco || '' });
+    else if (!atual.endereco && endereco) atual.endereco = endereco;
+  };
+  [...(agendaEventos || [])].reverse().forEach(ev => add(ev.local, ev.endereco));
+  (biDados || []).forEach(r => add(r.local));
+  try {
+    const r = await storageGet('locaisVistos', false);
+    const l = r && r.value ? JSON.parse(r.value) : [];
+    if (Array.isArray(l)) l.forEach(n => add(n));
+  } catch(e){}
+  return [...mapa.values()];
+}
+
+function agendaCampos(){
+  return {
+    data: document.getElementById('agData'), repetir: document.getElementById('agRepetir'),
+    local: document.getElementById('agLocal'), evento: document.getElementById('agEvento'),
+    endereco: document.getElementById('agEndereco'), inicio: document.getElementById('agInicio'),
+    fim: document.getElementById('agFim'), status: document.getElementById('agStatus'),
+    aviso: document.getElementById('agAviso'), mostrar: document.getElementById('agMostrar')
+  };
+}
+
+function lerFormAgenda(){
+  const c = agendaCampos();
+  return {
+    id: agendaEditando || '', data: c.data.value, repetir: c.repetir.checked,
+    local: c.local.value.trim(), evento: c.evento.value.trim(), endereco: c.endereco.value.trim(),
+    inicio: c.inicio.value, fim: c.fim.value, status: c.status.value,
+    aviso: c.aviso.value.trim(), mostrar: c.mostrar.checked, frase: agendaFraseUsada
+  };
+}
+
+function preencherFormAgenda(ev){
+  const c = agendaCampos();
+  c.data.value = ev.data || '';
+  c.repetir.checked = !!ev.repetir;
+  c.local.value = ev.local || '';
+  c.evento.value = ev.evento || '';
+  c.endereco.value = ev.endereco || '';
+  c.inicio.value = ev.inicio || '';
+  c.fim.value = ev.fim || '';
+  c.status.value = ev.status === 'Cancelado' ? 'Cancelado' : 'Confirmado';
+  c.aviso.value = ev.aviso || '';
+  c.mostrar.checked = ev.mostrar !== false;
+  agendaAvisosVistos = '';
+  atualizarBotaoSalvarAgenda('');
+}
+
+function limparFormAgenda(){
+  agendaEditando = null;
+  agendaFraseUsada = '';
+  preencherFormAgenda({ data: '', mostrar: true, status: 'Confirmado' });
+  document.getElementById('agEditando').style.display = 'none';
+  document.getElementById('agAvisos').innerHTML = '';
+  document.getElementById('agFrase').value = '';
+  document.getElementById('agVozMsg').textContent = '';
+}
+
+function atualizarBotaoSalvarAgenda(avisos){
+  const btn = document.getElementById('agSalvarBtn');
+  btn.textContent = avisos && avisos === agendaAvisosVistos ? 'Salvar mesmo assim' : (agendaEditando ? 'Salvar alterações' : 'Salvar evento');
+}
+
+// Confere o que falta. Erros impedem salvar; avisos pedem um segundo toque.
+async function conferirEventoAgenda(ev){
+  const erros = [], avisos = [];
+  const hoje = agendaHoje || dataHojeSP();
+  if (!ev.data) erros.push('Falta a <b>data</b> do evento.');
+  if (!ev.local) erros.push('Falta o <b>local</b> do evento.');
+  if (ev.inicio && ev.fim && ev.fim <= ev.inicio) avisos.push('O horário de fim está antes do início.');
+  if (ev.status === 'Confirmado' && ev.mostrar && !ev.endereco) {
+    avisos.push('Sem <b>endereço</b>, o site não mostra o mapa nem o botão "Como chegar".');
+  }
+  if (ev.data && ev.data < hoje && !ev.repetir && !agendaEditando) avisos.push(`A data ${formatDataBR(ev.data)} já passou.`);
+  if (ev.local) {
+    const conhecidos = await locaisConhecidos();
+    const igual = conhecidos.find(l => chaveLocal(l.local) === chaveLocal(ev.local));
+    if (!igual && conhecidos.length) {
+      avisos.push(`"${escapeHtml(ev.local)}" é um <b>local novo</b>. Confira se vai ser escrito assim também no lançamento das comandas, para os relatórios baterem.`);
+    }
+  }
+  if (!agendaEditando && ev.status === 'Cancelado' && ev.repetir) {
+    avisos.push('Cancelado com "Toda semana" não muda nada. Para tirar um dia só, desmarque "Toda semana". Para encerrar um ponto fixo, use ✏️ Editar na linha dele, lá embaixo.');
+  }
+  if (!agendaEditando && ev.status === 'Cancelado' && !ev.repetir && ev.data && ev.local && agendaEventos) {
+    const tem = ocorrenciasAgenda(agendaEventos, ev.data, 1).some(o => chaveLocal(o.ev.local) === chaveLocal(ev.local));
+    if (!tem) avisos.push(`A agenda não tem ${escapeHtml(ev.local)} em ${formatDataBR(ev.data)}, então este cancelamento não tira nada do site.`);
+  }
+  if (!agendaEditando && ev.status === 'Confirmado' && !ev.repetir && ev.data && ev.local && agendaEventos) {
+    const dup = agendaEventos.find(x => !x.repetir && x.status === 'Confirmado' && x.data === ev.data && chaveLocal(x.local) === chaveLocal(ev.local));
+    if (dup) avisos.push(`Já existe ${escapeHtml(dup.local)} em ${formatDataBR(ev.data)} na agenda. Se for o mesmo evento, use ✏️ Editar nele.`);
+  }
+  return { erros, avisos };
+}
+
+function mostrarConferencia(r){
+  const alvo = document.getElementById('agAvisos');
+  let html = '';
+  if (r.erros.length) html += `<div class="agenda-erro">${r.erros.join('<br>')}</div>`;
+  if (r.avisos.length) html += `<div class="comanda-aviso agenda-avisos">Antes de salvar, confira:<ul>${r.avisos.map(a => `<li>${a}</li>`).join('')}</ul></div>`;
+  alvo.innerHTML = html;
+}
+
+async function salvarEventoAgenda(){
+  const msg = document.getElementById('agSalvarMsg');
+  const btn = document.getElementById('agSalvarBtn');
+  msg.textContent = ''; msg.className = 'save-msg';
+  const ev = lerFormAgenda();
+  const r = await conferirEventoAgenda(ev);
+  mostrarConferencia(r);
+  if (r.erros.length) { agendaAvisosVistos = ''; atualizarBotaoSalvarAgenda(''); return; }
+  const chaveAvisos = r.avisos.join('|');
+  if (r.avisos.length && chaveAvisos !== agendaAvisosVistos) {
+    agendaAvisosVistos = chaveAvisos;
+    atualizarBotaoSalvarAgenda(chaveAvisos);
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+  try {
+    const res = await fetchServidor(webhookUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'salvarEvento', evento: ev, sessao: sessaoAtual && sessaoAtual.sessao })
+    });
+    let j;
+    try { j = await res.json(); } catch(e){ throw new Error('a planilha não respondeu em JSON'); }
+    if (!j || j.ok !== true) throw new Error(j && j.erro === 'login' ? 'sua sessão terminou; entre de novo com a conta Google' : ((j && j.erro) || 'erro ao salvar'));
+    await registrarLocalVisto(ev.local);
+    const noSite = ev.mostrar && (ev.status === 'Cancelado' || ev.endereco);
+    limparFormAgenda();
+    msg.className = 'save-msg ok';
+    msg.textContent = '✅ Evento salvo na planilha.' + (noSite ? ' O site já mostra a mudança.' : '');
+    await carregarEventos(true);
+    renderAgendaListas();
+  } catch(err){
+    msg.className = 'save-msg erro';
+    msg.textContent = 'Não salvou: ' + err.message;
+    atualizarBotaoSalvarAgenda('');
+  } finally {
+    btn.disabled = false;
+    if (btn.textContent === 'Salvando...') atualizarBotaoSalvarAgenda('');
+  }
+}
+
+function editarEventoAgenda(id){
+  const ev = (agendaEventos || []).find(e => e.id === id);
+  if (!ev) return;
+  agendaEditando = id;
+  agendaFraseUsada = '';
+  preencherFormAgenda(ev);
+  const aviso = document.getElementById('agEditando');
+  aviso.textContent = `✏️ Editando ${ev.local}${ev.repetir ? ' (toda ' + DIAS_SEMANA[diaDaSemana(ev.data)] + ')' : ' em ' + formatDataBR(ev.data)}. Para tirar este evento, troque a Situação para Cancelado.`;
+  aviso.style.display = 'block';
+  document.getElementById('agAvisos').innerHTML = '';
+  document.getElementById('agForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Ponto fixo: prepara uma linha "Cancelado" só para a próxima data dele.
+function pularDiaAgenda(id){
+  const ev = (agendaEventos || []).find(e => e.id === id);
+  if (!ev) return;
+  const proxima = ocorrenciasAgenda(agendaEventos, agendaHoje || dataHojeSP(), 60)
+    .find(o => o.ev.id === id && !o.cancelado);
+  limparFormAgenda();
+  preencherFormAgenda({ data: proxima ? proxima.data : '', local: ev.local, endereco: ev.endereco, status: 'Cancelado', mostrar: true, repetir: false });
+  const aviso = document.getElementById('agEditando');
+  aviso.textContent = `⏭️ Pulando um dia de ${ev.local}. Confira a data e toque em Salvar.`;
+  aviso.style.display = 'block';
+  document.getElementById('agForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderAgendaListas(){
+  const hoje = agendaHoje || dataHojeSP();
+  const eventos = agendaEventos || [];
+  const tags = (ev, fixo, cancelado) => [
+    cancelado ? '<span class="agenda-tag canc">cancelado</span>' : '',
+    fixo ? '<span class="agenda-tag fixo">🔁 fixo</span>' : '',
+    cancelado ? '' : (ev.mostrar ? '<span class="agenda-tag site">🌐 no site</span>' : '<span class="agenda-tag">🔒 só interno</span>')
+  ].join('');
+  const horario = ev => ev.inicio ? ` · ${ev.inicio}${ev.fim ? '–' + ev.fim : ''}` : '';
+
+  const oc = ocorrenciasAgenda(eventos, hoje, 14);
+  document.getElementById('agProximos').innerHTML = oc.length
+    ? oc.map(o => `<div class="agenda-item${o.cancelado ? ' cancelado' : ''}">
+        <span class="quando">${o.data === hoje ? 'Hoje' : rotuloDia(o.data)}${horario(o.ev)}</span>
+        <span class="onde">${escapeHtml(o.ev.evento || o.ev.local)}${o.ev.evento ? `<small>${escapeHtml(o.ev.local)}</small>` : ''}</span>
+        ${tags(o.ev, o.fixo, o.cancelado)}
+      </div>`).join('')
+    : '<div class="agenda-vazio">Nada marcado para os próximos 14 dias.</div>';
+
+  const fixos = eventos.filter(e => e.repetir && e.status === 'Confirmado');
+  const avulsos = eventos.filter(e => !e.repetir && e.data >= hoje).sort((a, b) => a.data.localeCompare(b.data));
+  const encerrados = eventos.length - fixos.length - avulsos.length;
+  const linha = (ev, acoes) => `<div class="agenda-item${ev.status === 'Cancelado' ? ' cancelado' : ''}">
+      <span class="quando">${ev.repetir ? 'Toda ' + DIAS_CURTOS[diaDaSemana(ev.data)].toLowerCase() : rotuloDia(ev.data)}${horario(ev)}</span>
+      <span class="onde">${escapeHtml(ev.evento || ev.local)}<small>${escapeHtml(ev.evento ? ev.local + ' · ' : '')}${escapeHtml(ev.endereco || 'sem endereço')}</small></span>
+      ${tags(ev, ev.repetir, ev.status === 'Cancelado')}
+      <span class="agenda-acoes">${acoes}</span>
+    </div>`;
+  const btn = (acao, id, txt) => `<button type="button" class="agenda-mini" data-ag-acao="${acao}" data-id="${escapeHtml(id)}">${txt}</button>`;
+  let html = '<div class="agenda-sub">🔁 Pontos fixos</div>';
+  html += fixos.length ? fixos.map(ev => linha(ev, btn('editar', ev.id, '✏️ Editar') + btn('pular', ev.id, '⏭️ Pular um dia'))).join('') : '<div class="agenda-vazio">Nenhum ponto fixo.</div>';
+  html += '<div class="agenda-sub">📌 Eventos avulsos e dias cancelados</div>';
+  html += avulsos.length ? avulsos.map(ev => linha(ev, btn('editar', ev.id, '✏️ Editar'))).join('') : '<div class="agenda-vazio">Nenhum de hoje em diante.</div>';
+  if (encerrados > 0) html += `<div class="evento-hint">${encerrados} registro${encerrados > 1 ? 's' : ''} antigo${encerrados > 1 ? 's' : ''} ou encerrado${encerrados > 1 ? 's' : ''} continua${encerrados > 1 ? 'm' : ''} na aba Eventos da planilha.</div>`;
+  const lista = document.getElementById('agLista');
+  lista.innerHTML = html;
+  lista.querySelectorAll('[data-ag-acao]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.agAcao === 'editar') editarEventoAgenda(b.dataset.id);
+    else pularDiaAgenda(b.dataset.id);
+  }));
+  atualizarLocaisAgenda();
+}
+
+async function atualizarLocaisAgenda(){
+  const l = await locaisConhecidos();
+  document.getElementById('agLocaisList').innerHTML = l.map(x => `<option value="${escapeHtml(x.local)}"></option>`).join('');
+}
+
+// Local conhecido digitado: usa a grafia já usada e traz o endereço que a agenda tem.
+async function completarLocalAgenda(){
+  const c = agendaCampos();
+  const nome = c.local.value.trim();
+  if (!nome) return;
+  const achado = (await locaisConhecidos()).find(l => chaveLocal(l.local) === chaveLocal(nome));
+  if (!achado) return;
+  if (achado.local !== nome) c.local.value = achado.local;
+  if (!c.endereco.value.trim() && achado.endereco) c.endereco.value = achado.endereco;
+}
+
+async function loadAgenda(){
+  if (!agendaIniciada) iniciarAgenda();
+  const aviso = document.getElementById('agendaAvisoVersao');
+  if ((infoServidor.versao || 0) < 8) infoServidor = await consultarServidor();
+  if ((infoServidor.versao || 0) < 8) {
+    aviso.innerHTML = `<div class="agenda-erro" style="margin:0;">A agenda precisa do Apps Script v8 publicado na planilha (hoje: v${infoServidor.versao || '?'}). Até lá, dá para mudar a agenda direto na aba Eventos da planilha.</div>`;
+    aviso.style.display = 'block';
+    document.getElementById('agProximos').innerHTML = '<div class="agenda-vazio">Aguardando o Apps Script v8.</div>';
+    document.getElementById('agLista').innerHTML = '<div class="agenda-vazio">Aguardando o Apps Script v8.</div>';
+    return;
+  }
+  aviso.style.display = 'none';
+  try {
+    await carregarEventos(true);
+    renderAgendaListas();
+  } catch(err){
+    document.getElementById('agProximos').innerHTML = `<div class="agenda-erro" style="margin:0;">Não consegui ler a agenda: ${escapeHtml(err.message)}</div>`;
+    document.getElementById('agLista').innerHTML = '';
+  }
+}
+
+// ----- Voz → texto (navegador) → campos (IA da planilha) -----
+const ReconhecimentoVoz = window.SpeechRecognition || window.webkitSpeechRecognition;
+let vozAtiva = null;
+
+function iniciarAgenda(){
+  agendaIniciada = true;
+  const mic = document.getElementById('agMicBtn');
+  const frase = document.getElementById('agFrase');
+  const msg = document.getElementById('agVozMsg');
+  if (!ReconhecimentoVoz) {
+    mic.style.display = 'none';
+    document.getElementById('agVozDica').textContent = 'Este navegador não tem o botão de falar. Use o 🎤 do teclado do celular para ditar aqui, ou escreva. Depois toque em Preencher os campos. Também dá para preencher os campos à mão.';
+  }
+  mic.addEventListener('click', () => {
+    if (vozAtiva) { vozAtiva.stop(); return; }
+    const rec = new ReconhecimentoVoz();
+    rec.lang = 'pt-BR';
+    rec.interimResults = true;
+    rec.continuous = false;
+    const base = frase.value.trim();
+    let ouvido = '';
+    rec.onresult = e => {
+      ouvido = Array.from(e.results).map(r => r[0].transcript).join(' ');
+      frase.value = (base ? base + ' ' : '') + ouvido;
+    };
+    rec.onerror = e => {
+      const textos = {
+        'not-allowed': 'O navegador bloqueou o microfone. Libere o microfone para este site e tente de novo.',
+        'service-not-allowed': 'O navegador bloqueou o microfone. Libere o microfone para este site e tente de novo.',
+        'no-speech': 'Não ouvi nada. Toque em 🎤 e fale de novo.',
+        'network': 'O reconhecimento de voz precisa de internet.'
+      };
+      msg.className = 'save-msg erro';
+      msg.textContent = textos[e.error] || ('Não consegui ouvir (' + e.error + '). Tente de novo ou escreva.');
+    };
+    rec.onend = () => {
+      vozAtiva = null;
+      mic.classList.remove('ouvindo');
+      document.getElementById('agMicTxt').textContent = 'Falar';
+      if (ouvido.trim()) preencherAgendaPelaIA();
+    };
+    try {
+      rec.start();
+      vozAtiva = rec;
+      mic.classList.add('ouvindo');
+      document.getElementById('agMicTxt').textContent = 'Ouvindo…';
+      msg.className = 'save-msg';
+      msg.textContent = 'Pode falar. Toque de novo para parar.';
+    } catch(err){
+      msg.className = 'save-msg erro';
+      msg.textContent = 'Não consegui ligar o microfone: ' + err.message;
+    }
+  });
+  document.getElementById('agPreencherBtn').addEventListener('click', preencherAgendaPelaIA);
+  document.getElementById('agSalvarBtn').addEventListener('click', salvarEventoAgenda);
+  document.getElementById('agLimparBtn').addEventListener('click', () => {
+    limparFormAgenda();
+    document.getElementById('agSalvarMsg').textContent = '';
+  });
+  const c = agendaCampos();
+  c.local.addEventListener('change', completarLocalAgenda);
+  Object.values(c).forEach(el => el.addEventListener('input', () => { agendaAvisosVistos = ''; atualizarBotaoSalvarAgenda(''); }));
+  limparFormAgenda();
+}
+
+async function preencherAgendaPelaIA(){
+  const msg = document.getElementById('agVozMsg');
+  const btn = document.getElementById('agPreencherBtn');
+  const frase = document.getElementById('agFrase').value.trim();
+  msg.className = 'save-msg';
+  if (!frase) { msg.className = 'save-msg erro'; msg.textContent = 'Fale ou escreva o evento primeiro.'; return; }
+  if (!infoServidor.ia) {
+    msg.className = 'save-msg erro';
+    msg.textContent = 'A leitura por IA não está ligada na planilha. Preencha os campos abaixo à mão.';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Entendendo…';
+  try {
+    if (!agendaEventos) { try { await carregarEventos(); } catch(e){} }
+    const hoje = agendaHoje || dataHojeSP();
+    const conhecidos = await locaisConhecidos();
+    const fixos = (agendaEventos || []).filter(e => e.repetir && e.status === 'Confirmado')
+      .map(e => `- toda ${DIAS_SEMANA[diaDaSemana(e.data)]}: ${e.local}`).join('\n') || '(nenhum)';
+    const pedido = {
+      max_tokens: 1500,
+      system: `Você organiza a agenda do Narua, food truck de comida asiática de rua em São Paulo. Recebe um recado falado ou escrito pela equipe sobre onde o food truck vai estar e devolve os campos de UM evento.
+Hoje é ${DIAS_SEMANA[diaDaSemana(hoje)]}, ${formatDataBR(hoje)} (fuso de São Paulo).
+Locais já usados (nome exato → endereço conhecido):
+${conhecidos.map(l => `- ${l.local}${l.endereco ? ' → ' + l.endereco : ''}`).join('\n') || '(nenhum)'}
+Pontos fixos da semana:
+${fixos}
+Regras:
+- Se o local falado for parecido com um local já usado (mesmo lugar com outra grafia, sem acento, abreviado), devolva o nome exatamente como na lista e o endereço conhecido dele.
+- Datas relativas ("amanhã", "sábado", "sábado que vem", "dia 25") viram a data futura mais próxima, a partir de hoje, no formato AAAA-MM-DD.
+- "Toda quinta", "toda semana", "a partir de agora todo sábado": repetir = true e data = a primeira data dessa série.
+- "Não vamos", "cancelou", "sem food truck": status = "Cancelado".
+- Horários: "das 10 às 18" vira inicio "10:00" e fim "18:00". Sem horário falado, use null.
+- Nunca invente endereço: se o local é novo e o endereço não foi dito, endereco = null.
+- mostrar_no_site = false só se disserem que é particular, fechado ou para não divulgar.
+- "aviso" é só um recado para os clientes, se houver (ex.: "hoje com prato novo").
+- Em "faltando", liste o que não deu para entender e é necessário: "data", "local" ou "endereço" (endereço só quando o local é novo).
+Responda APENAS com JSON válido, sem markdown: {"data": "AAAA-MM-DD" ou null, "repetir": true|false, "local": string ou null, "evento": string ou null, "endereco": string ou null, "inicio": "HH:MM" ou null, "fim": "HH:MM" ou null, "status": "Confirmado" ou "Cancelado", "mostrar_no_site": true|false, "aviso": string ou null, "faltando": [strings]}`,
+      messages: [{ role: 'user', content: frase }]
+    };
+    const data = await lerPelaPlanilha(pedido);
+    if (data && data.type === 'error') throw new Error((data.error && data.error.message) || 'erro da IA');
+    const bloco = (data.content || []).find(b => b.type === 'text');
+    if (!bloco) throw new Error('a IA não respondeu');
+    const txt = bloco.text;
+    const ini = txt.indexOf('{'), fim = txt.lastIndexOf('}');
+    if (ini === -1 || fim < ini) throw new Error('resposta da IA fora do formato');
+    const r = JSON.parse(txt.slice(ini, fim + 1));
+    const hora = h => (typeof h === 'string' && /^\d{1,2}:\d{2}$/.test(h)) ? h.padStart(5, '0') : '';
+    preencherFormAgenda({
+      data: /^\d{4}-\d{2}-\d{2}$/.test(r.data || '') ? r.data : '',
+      repetir: !!r.repetir,
+      local: r.local || '',
+      evento: r.evento || '',
+      endereco: r.endereco || '',
+      inicio: hora(r.inicio), fim: hora(r.fim),
+      status: r.status === 'Cancelado' ? 'Cancelado' : 'Confirmado',
+      aviso: r.aviso || '',
+      mostrar: r.mostrar_no_site !== false
+    });
+    agendaFraseUsada = frase;
+    await completarLocalAgenda();
+    const conf = await conferirEventoAgenda(lerFormAgenda());
+    mostrarConferencia(conf);
+    msg.className = 'save-msg ok';
+    msg.textContent = conf.erros.length ? 'Preenchi o que entendi. Complete o que falta, marcado abaixo.' : '✅ Campos preenchidos. Confira e toque em Salvar.';
+    document.getElementById('agForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(err){
+    msg.className = 'save-msg erro';
+    msg.textContent = 'Não consegui entender pela IA: ' + err.message + '. Preencha os campos à mão.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Preencher os campos';
+  }
+}
+
+// ----- Lançar comandas: sugere o local que a agenda tem para a data -----
+async function sugerirLocalDaAgenda(){
+  const box = document.getElementById('agendaSugestao');
+  if (!box) return;
+  box.style.display = 'none';
+  if ((infoServidor.versao || 0) < 8 || !eventoData.value) return;
+  let eventos;
+  try { eventos = await carregarEventos(); } catch(e){ return; }
+  const oc = ocorrenciasAgenda(eventos, eventoData.value, 1).filter(o => !o.cancelado);
+  const atual = chaveLocal(eventoLocal.value);
+  if (!oc.length || oc.some(o => chaveLocal(o.ev.local) === atual)) return;
+  box.innerHTML = '📅 Na agenda deste dia: ' + oc.map(o => `<button type="button" class="agenda-chip" data-local="${escapeHtml(o.ev.local)}">usar ${escapeHtml(o.ev.local)}</button>`).join('');
+  box.querySelectorAll('[data-local]').forEach(b => b.addEventListener('click', () => {
+    eventoLocal.value = b.dataset.local;
+    eventoLocal.dispatchEvent(new Event('input'));
+    box.style.display = 'none';
+  }));
+  box.style.display = 'flex';
+}
+eventoData.addEventListener('change', sugerirLocalDaAgenda);
+eventoLocal.addEventListener('input', () => {
+  const box = document.getElementById('agendaSugestao');
+  if (box && box.style.display !== 'none' && chaveLocal(eventoLocal.value)) {
+    const opcoes = [...box.querySelectorAll('[data-local]')].map(b => chaveLocal(b.dataset.local));
+    if (opcoes.includes(chaveLocal(eventoLocal.value))) box.style.display = 'none';
+  }
+});
 
 </script>
 </body>
