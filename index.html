@@ -68,6 +68,9 @@
     font-family:'IBM Plex Mono',monospace;font-size:14px;background:#fff;color:var(--ink);
   }
   input:focus{outline:3px solid var(--orange);outline-offset:1px;}
+  /* v6: campos numéricos sem as setinhas (o valor só muda digitando) */
+  input[type=number]{-moz-appearance:textfield;appearance:textfield;}
+  input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
   select{
     width:100%;padding:10px 11px;border:2px solid var(--ink);border-radius:8px;
     font-family:'IBM Plex Mono',monospace;font-size:14px;background:#fff;color:var(--ink);
@@ -412,8 +415,8 @@
   <div class="step-label"><span class="num">2</span>Adicionar comandas</div>
   <div class="card">
     <div class="btn-row">
-      <input type="file" id="galleryInput" accept="image/*" multiple>
-      <label class="capture-btn" id="galleryBtn" for="galleryInput">🖼️ Envio em lote</label>
+      <input type="file" id="galleryInput" accept="image/*,application/pdf,.pdf" multiple>
+      <label class="capture-btn" id="galleryBtn" for="galleryInput">🖼️ Envio em lote (fotos ou PDF)</label>
     </div>
     <button class="add-item" id="manualBtn" style="margin-top:10px;">+ adicionar comanda manualmente (sem foto)</button>
     <div id="modeHint" class="evento-hint" style="display:none;"></div>
@@ -535,6 +538,12 @@
 </div>
 
 <script>
+// v6: o scroll do mouse em cima de um campo numérico não muda mais o valor;
+// o campo perde o foco e a página rola normalmente.
+document.addEventListener('wheel', e => {
+  const el = e.target;
+  if (el && el.tagName === 'INPUT' && el.type === 'number' && document.activeElement === el) el.blur();
+}, { passive: true, capture: true });
 let comandas = [];
 let webhookUrl = null;
 let comprasWebhookUrl = null;
@@ -894,7 +903,7 @@ function getEvento(){
 }
 
 async function handleFiles(fileList){
-  const files = Array.from(fileList || []);
+  let files = Array.from(fileList || []);
   if (files.length === 0) return;
   if (envioEmAndamento()) { showError('Aguarde o envio dos lotes terminar antes de adicionar comandas.'); galleryInput.value = ''; return; }
   const ev = getEvento();
@@ -906,6 +915,20 @@ async function handleFiles(fileList){
   errorWrap.innerHTML = '';
   galleryInput.disabled = true;
   galleryBtn.classList.add('disabled');
+
+  // v6: cada página de um PDF vira uma foto (uma comanda por página).
+  if (files.some(ehPDF)) {
+    try {
+      files = await expandirPDFs(files);
+    } catch (err) {
+      showError(`Não consegui abrir o PDF (${escapeHtml(err && err.message || err)}). Confira se o arquivo não está protegido por senha, ou envie as fotos das comandas.`);
+      setStatus('', false);
+      galleryInput.disabled = false;
+      galleryBtn.classList.remove('disabled');
+      galleryInput.value = '';
+      return;
+    }
+  }
 
   if (apiMode === 'manual') {
     files.forEach(() => addComanda({ itens: [] }));
@@ -1041,6 +1064,67 @@ function fileToBase64(file){
     img.onerror = usarFallback;
     img.src = url;
   });
+}
+
+// ---------- PDF de comandas (v6) ----------
+// O PDF é aberto no próprio navegador (pdf.js, carregado só quando alguém
+// envia um PDF) e cada página vira uma imagem JPEG, que segue o mesmo caminho
+// das fotos. Assim a leitura e o custo da IA são os mesmos de enviar fotos.
+const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let pdfjsPromise = null;
+
+function ehPDF(f){
+  return f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || ''));
+}
+
+function carregarPdfjs(){
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (!pdfjsPromise) {
+    pdfjsPromise = new Promise((resolve, reject) => {
+      const sc = document.createElement('script');
+      sc.src = PDFJS_URL;
+      sc.onload = () => {
+        if (!window.pdfjsLib) { reject(new Error('leitor de PDF não carregou')); return; }
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+        resolve(window.pdfjsLib);
+      };
+      sc.onerror = () => { pdfjsPromise = null; reject(new Error('sem internet para carregar o leitor de PDF')); };
+      document.head.appendChild(sc);
+    });
+  }
+  return pdfjsPromise;
+}
+
+async function expandirPDFs(files){
+  const saida = [];
+  for (const f of files){
+    if (!ehPDF(f)) { saida.push(f); continue; }
+    setStatus('Abrindo o PDF…', true);
+    const pdfjsLib = await carregarPdfjs();
+    const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
+    const base = (f.name || 'comandas').replace(/\.pdf$/i, '');
+    for (let n = 1; n <= pdf.numPages; n++){
+      setStatus(`Preparando as páginas do PDF: ${n} de ${pdf.numPages}…`, true);
+      const pagina = await pdf.getPage(n);
+      const v1 = pagina.getViewport({ scale: 1 });
+      const escala = MAX_IMAGE_DIMENSION / Math.max(v1.width, v1.height);
+      const vp = pagina.getViewport({ scale: escala });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(vp.width);
+      canvas.height = Math.round(vp.height);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await pagina.render({ canvasContext: ctx, viewport: vp }).promise;
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
+      pagina.cleanup();
+      saida.push(new File([blob], `${base}-pagina-${n}.jpg`, { type: 'image/jpeg' }));
+    }
+    await pdf.destroy();
+  }
+  setStatus('', false);
+  return saida;
 }
 
 // ---------- Login com Google ----------
