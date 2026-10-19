@@ -608,6 +608,17 @@
   </div>
 </div>
 
+<div class="modal-bg" id="fechamentoBg">
+  <div class="modal">
+    <h2>Ver o fechamento?</h2>
+    <p id="fechamentoTexto">As comandas foram gravadas. Quer ver o fechamento deste evento?</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="fechamentoNao">Agora não</button>
+      <button class="btn-primary" id="fechamentoSim">Ver fechamento</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // v6: o scroll do mouse em cima de um campo numérico não muda mais o valor;
 // o campo perde o foco e a página rola normalmente.
@@ -2062,7 +2073,31 @@ async function finalizarLocalmente(){
   compileBtn.style.display = 'block';
   document.getElementById('compileHint').style.display = 'block';
   loteState = null;
+  perguntarFechamento(ev);
 }
+
+// v10: depois de um lançamento, oferece abrir o Acom. Semanal já filtrado no
+// local do evento, com a semana do evento (X) contra a semana anterior (Y).
+let fechamentoEvento = null;
+function perguntarFechamento(ev){
+  if (!ev || !extrairDataEvento(ev.data)) return;
+  fechamentoEvento = ev;
+  document.getElementById('fechamentoTexto').innerHTML = `As comandas foram gravadas. Quer ver o fechamento de <b>${escapeHtml(ev.local || 'sem local')}</b> (${formatDataBR(extrairDataEvento(ev.data))}), comparando a semana do evento com a semana anterior?`;
+  document.getElementById('fechamentoBg').classList.add('show');
+}
+function fecharPerguntaFechamento(){ document.getElementById('fechamentoBg').classList.remove('show'); }
+document.getElementById('fechamentoNao').addEventListener('click', () => { fechamentoEvento = null; fecharPerguntaFechamento(); });
+document.getElementById('fechamentoSim').addEventListener('click', () => {
+  const ev = fechamentoEvento;
+  fechamentoEvento = null;
+  fecharPerguntaFechamento();
+  if (!ev) return;
+  semLocal = ev.local || 'sem local';
+  semX = inicioSemana(extrairDataEvento(ev.data));
+  semY = null; // renderSemanal escolhe a semana anterior com vendas neste local
+  biDados = null; // recarrega: as comandas que acabaram de ser gravadas precisam entrar
+  showView('semanal');
+});
 
 // Disparada automaticamente assim que o último lote termina a animação de
 // envio (não existe mais um botão "Concluir" separado pra tocar).
@@ -3209,7 +3244,10 @@ function renderSemanal(dados){
   // Só entram linhas com data do evento (sem data não há como saber a semana).
   const comData = dados.filter(r => extrairDataEvento(r.data_evento));
   const todosLocais = Array.from(new Set(comData.map(r => r.local || 'sem local'))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  if (semLocal !== 'todos' && !todosLocais.includes(semLocal)) semLocal = 'todos';
+  if (semLocal !== 'todos' && !todosLocais.includes(semLocal)){
+    const parecido = todosLocais.find(l => normalizarTexto(l) === normalizarTexto(semLocal));
+    semLocal = parecido || 'todos';
+  }
   const doEvento = comData.filter(r => semLocal === 'todos' || (r.local || 'sem local') === semLocal);
 
   const porSemana = new Map(); // segunda -> linhas
