@@ -1406,7 +1406,7 @@ async function analyzeImagesBatch(imagens){
   const pedido = {
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 4000,
-      system: `Você extrai dados de comandas/pedidos de restaurante a partir de fotos. Cada foto recebida é uma comanda separada e independente, na ordem em que aparecem (Comanda 1, Comanda 2, etc). As comandas têm uma coluna de quantidade vendida e uma coluna de valor — esse valor escrito já é o TOTAL da linha (quantidade vezes o preço unitário), não é o preço unitário individual. Por exemplo, se a linha mostra quantidade 2 e valor 50, isso significa 2 unidades somando R$ 50 no total, e você deve devolver quantidade=2 e valor_total=50. Leia os números exatamente como estão escritos. As comandas também têm caixas marcadas com as siglas CR (crédito), DB (débito), PIX e DN (dinheiro) indicando a forma de pagamento — geralmente uma está circulada, marcada com X, ou destacada. Na base da comanda também costuma haver o nome do cliente. Algumas comandas também têm um número escrito em tinta/caneta VERMELHA no canto superior direito da folha — esse número é o identificador único daquela comanda (ID). Procure especificamente por esse número vermelho no canto superior direito; se ele existir e for legível, devolva-o como texto exatamente como está escrito (pode ter zeros à esquerda, ex: "042"); se não houver número vermelho visível ou ele estiver ilegível, devolva null nesse campo — não confunda com outros números da comanda (valores, quantidades, telefone). Responda APENAS com um JSON válido, sem markdown, sem texto adicional, sem nenhum comentário ou frase antes ou depois (nunca escreva coisas como "Analisando a imagem..." ou qualquer introdução — a primeira coisa que você escrever deve ser o caractere '{'), no formato exato: {"comandas": [{"numero": string ou null, "pagamento": "Crédito" | "Débito" | "Pix" | "Dinheiro" | "Não identificado", "cliente": string ou null, "itens": [{"nome": string, "quantidade": number, "valor_total": number}]}]}. O array "comandas" deve ter exatamente ${imagens.length} posições, uma para cada foto recebida, na mesma ordem. Quantidade padrão 1 se não estiver escrita. Não invente itens que não estão na comanda. Se não conseguir identificar a forma de pagamento, use "Não identificado". Se não encontrar cliente, use null.
+      system: `Você extrai dados de comandas/pedidos de restaurante a partir de fotos. Cada foto recebida é uma comanda separada e independente, na ordem em que aparecem (Comanda 1, Comanda 2, etc). As comandas têm uma coluna de quantidade vendida e uma coluna de valor — esse valor escrito já é o TOTAL da linha (quantidade vezes o preço unitário), não é o preço unitário individual. Por exemplo, se a linha mostra quantidade 2 e valor 50, isso significa 2 unidades somando R$ 50 no total, e você deve devolver quantidade=2 e valor_total=50. Leia os números exatamente como estão escritos. As comandas também têm caixas marcadas com as siglas CR (crédito), DB (débito), PIX e DN (dinheiro) indicando a forma de pagamento — geralmente uma está circulada, marcada com X, ou destacada. Na base da comanda também costuma haver o nome do cliente. Algumas comandas também têm um número escrito em tinta/caneta VERMELHA no canto superior direito da folha — esse número é o identificador único daquela comanda (ID). Procure especificamente por esse número vermelho no canto superior direito; se ele existir e for legível, devolva-o como texto exatamente como está escrito (pode ter zeros à esquerda, ex: "042"); se não houver número vermelho visível ou ele estiver ilegível, devolva null nesse campo — não confunda com outros números da comanda (valores, quantidades, telefone). Responda APENAS com um JSON válido, sem markdown, sem texto adicional, sem nenhum comentário ou frase antes ou depois (nunca escreva coisas como "Analisando a imagem..." ou qualquer introdução — a primeira coisa que você escrever deve ser o caractere '{'), no formato exato: {"comandas": [{"numero": string ou null, "pagamento": "Crédito" | "Débito" | "Pix" | "Dinheiro" | "Não identificado", "cliente": string ou null, "itens": [{"nome": string, "quantidade": number, "valor_total": number}]}]}. O array "comandas" deve ter exatamente ${imagens.length} posições, uma para cada foto recebida, na mesma ordem. Para o campo "nome", quando o item escrito for um destes produtos, use exatamente este nome: ${LISTA_NOMES_PADRAO.join(', ')}. Se não for nenhum deles, escreva o nome como está na comanda. Quantidade padrão 1 se não estiver escrita. Não invente itens que não estão na comanda. Se não conseguir identificar a forma de pagamento, use "Não identificado". Se não encontrar cliente, use null.
 
 Preços de referência do cardápio deste food truck (por unidade, aproximados):
 ${menuTexto}
@@ -1445,7 +1445,7 @@ function addComanda(parsed){
   const id = novoIdComanda();
   const itens = (parsed.itens || []).map((it, idx) => tentarPreencherAutomatico({
     id: id + '_it' + idx,
-    nome: it.nome || '',
+    nome: nomePadrao(it.nome),
     quantidade: it.quantidade || 1,
     valor_total: it.valor_total || 0
   }));
@@ -1515,6 +1515,21 @@ const VALOR_TOTAL_ABSURDO = 800; // nenhuma linha de comanda de food truck dever
 function normalizarTexto(s){
   return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
+// v9: nome padrão de cada produto. A mesma coisa chegava escrita de jeitos
+// diferentes ("coca z", "COCA ZERO", "h20") e dividia o faturamento nos
+// relatórios. Grafias conhecidas viram o nome padrão; qualquer outra fica
+// só com a primeira letra maiúscula. Para ensinar uma grafia nova, inclua
+// "grafia sem acento em minúsculas": "Nome padrão" na lista abaixo.
+const NOMES_PADRAO = {"agua":"Água","agua cg":"Água com gás","agua com gas":"Água com gás","agua de coco":"Água de coco","agua gas":"Água com gás","agua n":"Água","bon bon":"Suco importado","bonbom":"Suco importado","bonbon":"Suco importado","cerveja":"Heineken","cha":"Chá","coca":"Coca-cola","coca 2":"Coca-cola","coca cola":"Coca-cola","coca orig":"Coca-cola","coca original":"Coca-cola","coca z":"Coca-cola zero","coca zero":"Coca-cola zero","coca-cola":"Coca-cola","coca-cola zero":"Coca-cola zero","coco":"Água de coco","coco original":"Coca-cola","coco suco":"Água de coco","coco zero":"Coca-cola zero","combo":"Combo ODD","combo o":"Combo ODD","combo od":"Combo ODD","combo odd":"Combo ODD","corn dog":"Corn dog","fanta laranja":"Fanta laranja","granola":"Granola Pura","granola pura":"Granola Pura","guarana":"Guaraná","guarana z":"Guaraná zero","guarana zero":"Guaraná zero","guioza":"Guioza","guioza s":"Guioza","guioza suina":"Guioza","h20":"H2oh","h2o":"H2oh","h2oh":"H2oh","harasuame":"Harusame","harumaki":"Harumaki","harusame":"Harusame","heineken":"Heineken","karaaague":"Karaaguê","karaague":"Karaaguê","laranja":"Suco de laranja","lichia":"Suco de lichia","maracuja":"Suco de maracujá","marcuja":"Suco de maracujá","mate":"Mate","moracuja":"Suco de maracujá","nikkuman":"Nikkuman","ood":"Combo ODD","pura":"Granola Pura","pure":"Granola Pura","refri":"Refrigerante","refrigerante":"Refrigerante","schweppes":"Schweppes","shimeji":"Shimeji","shweppes":"Schweppes","soju ichigo":"Soju morango","soju licha":"Soju lichia","soju lichia":"Soju lichia","soju morango":"Soju morango","soju uva":"Soju uva","suco":"Suco importado","suco de laranja":"Suco de laranja","suco de lichia":"Suco de lichia","suco de maracuja":"Suco de maracujá","suco de uva":"Suco de uva","suco heino":"Suco importado","suco importado":"Suco importado","suco laranja":"Suco de laranja","suco maracuja":"Suco de maracujá","suco uva":"Suco de uva","sushi":"Sushi de corte","sushi conte":"Sushi de corte","sushi corte":"Sushi de corte","sushi de corte":"Sushi de corte","takoyaki":"Takoyaki","tempura":"Tempurá","uva":"Suco de uva","yakissoba g":"Yakissoba G","yakissoba p":"Yakissoba P"};
+function nomePadrao(nome){
+  const limpo = String(nome || '').replace(/\s+/g, ' ').trim();
+  if (!limpo) return '';
+  const chave = normalizarTexto(limpo).replace(/[.!,;:]+$/, '').trim();
+  if (NOMES_PADRAO[chave]) return NOMES_PADRAO[chave];
+  const min = limpo.toLocaleLowerCase('pt-BR');
+  return min.charAt(0).toLocaleUpperCase('pt-BR') + min.slice(1);
+}
+const LISTA_NOMES_PADRAO = [...new Set(Object.values(NOMES_PADRAO))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 function encontrarNoMenu(nome){
   const norm = normalizarTexto(nome);
   if (!norm) return null;
@@ -1760,7 +1775,7 @@ function montarComandasPayload(){
     numero: c.numero || '',
     cliente: c.cliente,
     pagamento: c.pagamento,
-    itens: c.itens.map(i => ({ nome: i.nome, quantidade: i.quantidade, valor_unitario: i.quantidade ? i.valor_total / i.quantidade : 0, valor_total: i.valor_total }))
+    itens: c.itens.map(i => ({ nome: nomePadrao(i.nome) || i.nome, quantidade: i.quantidade, valor_unitario: i.quantidade ? i.valor_total / i.quantidade : 0, valor_total: i.valor_total }))
   }));
 }
 
@@ -2603,7 +2618,7 @@ function renderBI(dados){
     const pag = row.pagamento || 'não informado';
     pagamentoMap.set(pag, (pagamentoMap.get(pag) || 0) + valor);
 
-    const nomeItem = normalizarTexto(row.item || 'sem nome');
+    const nomeItem = nomePadrao(row.item) || 'Sem nome';
     const atual = itemMap.get(nomeItem) || { quantidade: 0, total: 0 };
     atual.quantidade += qtd;
     atual.total += valor;
@@ -3083,8 +3098,9 @@ function resumoSemana(linhas){
     const e = eventos.get(ke) || { data, local, total: 0, comandas: new Set() };
     e.total += valor; e.comandas.add(ch);
     eventos.set(ke, e);
-    const kn = normalizarTexto(row.item || 'sem nome');
-    const it = itens.get(kn) || { nome: String(row.item || 'sem nome').trim(), qtd: 0, total: 0 };
+    const nomeP = nomePadrao(row.item) || 'Sem nome';
+    const kn = normalizarTexto(nomeP);
+    const it = itens.get(kn) || { nome: nomeP, qtd: 0, total: 0 };
     it.qtd += qtd; it.total += valor;
     itens.set(kn, it);
     const pag = row.pagamento || 'Não informado';
