@@ -306,17 +306,24 @@
   .menu-check input{width:18px;height:18px;margin:0;accent-color:var(--green);}
   /* Acompanhamento semanal (v7) */
   .home-card.c-green{background:var(--green);color:#fff;}
-  .sem-filtros-semana{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px;}
+  /* v8: telas de dados usam a largura do computador; no celular nada muda */
+  .wrap.largo{max-width:1180px;}
+  .sem-filtros{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media (min-width:900px){ .sem-filtros{grid-template-columns:1fr 1.3fr 1.3fr;} }
   .sem-filtro{min-width:0;}
-  .sem-chip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:2px solid var(--ink);font-family:'Titan One',cursive;font-size:10px;margin-right:4px;vertical-align:middle;}
-  .sem-chip.x{background:var(--red);color:#fff;}
+  .sem-filtro label{display:flex;align-items:center;gap:7px;min-height:24px;}
+  .sem-chip{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;border:2px solid var(--ink);font-family:'Poppins',sans-serif;font-weight:800;font-size:13px;line-height:1;letter-spacing:0;flex-shrink:0;}
+  .sem-chip.x{background:var(--orange2);color:var(--ink);}
   .sem-chip.y{background:var(--cyan);color:var(--ink);}
+  .sem-grade{display:grid;grid-template-columns:1fr;gap:0 22px;}
+  @media (min-width:900px){ .sem-grade{grid-template-columns:1fr 1fr;} }
   .sem-datas{margin-top:8px;font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-soft);line-height:1.45;background:#fffdf6;border:1.5px dashed var(--line);border-radius:8px;padding:7px 9px;}
   .sem-datas b{color:var(--ink);}
-  .sem-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
+  .sem-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  @media (min-width:760px){ .sem-kpis{grid-template-columns:repeat(4,minmax(0,1fr));} }
   .sem-kpi{background:#fffdf6;border:2px solid var(--ink);border-radius:10px;padding:10px 11px 6px;box-shadow:3px 3px 0 rgba(0,0,0,0.25);display:flex;flex-direction:column;gap:2px;min-width:0;}
   .sem-kpi-rot{font-family:'Poppins',sans-serif;font-size:10.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
-  .sem-kpi-val{font-family:'Titan One',cursive;font-size:19px;color:var(--ink);}
+  .sem-kpi-val{font-family:'Titan One',cursive;font-size:21px;color:var(--ink);}
   .sem-kpi-y{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);min-height:14px;}
   .sem-spark{width:100%;height:32px;display:block;margin-top:4px;}
   .sem-delta{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;align-self:flex-start;white-space:nowrap;}
@@ -325,16 +332,22 @@
   .sem-delta.neutro{background:#ece5d2;color:var(--ink-soft);font-weight:600;}
   .sem-nota{font-family:'Poppins',sans-serif;font-size:11.5px;color:var(--ink-soft);margin:10px 0 0;line-height:1.45;}
   .sem-tabela{overflow-x:auto;margin:0 -4px;}
-  .sem-tabela table{width:100%;border-collapse:collapse;font-family:'Poppins',sans-serif;font-size:12.5px;color:var(--ink);min-width:480px;}
-  .sem-tabela th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:700;padding:6px;border-bottom:2px solid var(--ink);white-space:nowrap;}
-  .sem-tabela td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle;}
-  .sem-tabela .n{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:nowrap;}
-  .sem-tier{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;border:2px solid var(--ink);font-family:'Titan One',cursive;font-size:12px;}
-  .sem-tier.t-S{background:var(--red);color:#fff;}
-  .sem-tier.t-A{background:var(--orange);color:var(--ink);}
-  .sem-tier.t-B{background:var(--cyan);color:var(--ink);}
-  .sem-tier.t-C{background:#d8cfb8;color:var(--ink);}
-  .sem-mov{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;padding:0 5px;border-radius:8px;margin-left:4px;white-space:nowrap;}
+  .sem-tabela table{width:100%;border-collapse:collapse;font-family:'Poppins',sans-serif;font-size:13.5px;color:var(--ink);min-width:520px;}
+  .sem-tabela th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:700;padding:9px 12px;border-bottom:2px solid var(--ink);white-space:nowrap;}
+  .sem-tabela td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  .sem-tabela tbody tr:nth-child(even) td{background:rgba(255,253,246,.7);}
+  .sem-item{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .sem-tabela .n{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;white-space:nowrap;}
+  .sem-tier{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;border:2px solid var(--ink);font-family:'Poppins',sans-serif;font-weight:800;font-size:13px;line-height:1;}
+  /* v8: escala do melhor (verde) ao mais fraco (cinza); vermelho fica só para queda */
+  .sem-tier.t-S{background:var(--green);color:#fff;}
+  .sem-tier.t-A{background:var(--cyan);color:var(--ink);}
+  .sem-tier.t-B{background:var(--orange);color:var(--ink);}
+  .sem-tier.t-C{background:#d8cfb8;color:var(--ink-soft);}
+  .sem-tiers-leg{display:flex;flex-wrap:wrap;gap:8px 16px;margin:0 0 12px;font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-soft);}
+  .sem-tiers-leg span{display:inline-flex;align-items:center;gap:6px;}
+  .sem-tiers-leg .sem-tier{width:22px;height:22px;font-size:11px;}
+  .sem-mov{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;}
   .sem-mov.up{background:#e3f6e7;color:var(--green);}
   .sem-mov.down{background:#fbecea;color:var(--red);}
   .sem-mov.novo{background:#ece5d2;color:var(--ink-soft);}
@@ -351,6 +364,7 @@
   .sem-alerta{border-left:4px solid var(--red);background:#fbecea;padding:7px 10px;border-radius:0 8px 8px 0;font-family:'Poppins',sans-serif;font-size:12.5px;}
   .sem-positivo{border-left:4px solid var(--green);background:#e3f6e7;padding:7px 10px;border-radius:0 8px 8px 0;}
   #semAnaliseBtn:disabled{opacity:.6;cursor:wait;}
+  @media (min-width:900px){ #semAnaliseBtn{width:auto;min-width:300px;padding:14px 28px;} }
 </style>
 </head>
 <body>
@@ -709,6 +723,7 @@ function showView(view){
   if (view === 'menu') renderMenuEditor();
   if (view === 'bi') loadBI();
   if (view === 'semanal') loadSemanal();
+  document.querySelector('.wrap').classList.toggle('largo', view === 'semanal' || view === 'bi');
   if (view === 'consultarCompras') loadCompras();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -3137,7 +3152,7 @@ function sparkline(valores, idxDestaque){
   return `<svg class="sem-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
     <polygon points="3,${h} ${linha} ${w - 3},${h}" fill="var(--cyan)" opacity=".25"></polygon>
     <polyline points="${linha}" fill="none" stroke="var(--ink)" stroke-width="1.6" vector-effect="non-scaling-stroke"></polyline>
-    <circle cx="${d[0].toFixed(1)}" cy="${d[1].toFixed(1)}" r="3.2" fill="var(--red)" stroke="var(--ink)" stroke-width="1"></circle></svg>`;
+    <circle cx="${d[0].toFixed(1)}" cy="${d[1].toFixed(1)}" r="3.2" fill="var(--orange2)" stroke="var(--ink)" stroke-width="1.2"></circle></svg>`;
 }
 
 async function loadSemanal(force){
@@ -3224,19 +3239,21 @@ function renderSemanal(dados){
 
   const filtros = `<div class="card">
     <div class="bi-section-title">Filtros</div>
-    <label for="semLocalFiltro">Evento</label>
-    <select id="semLocalFiltro">
-      <option value="todos" ${semLocal === 'todos' ? 'selected' : ''}>Todos os eventos</option>
-      ${opcoesLocais}
-    </select>
-    <div class="sem-filtros-semana">
+    <div class="sem-filtros">
       <div class="sem-filtro">
-        <label for="semXFiltro"><span class="sem-chip x">X</span> Semana analisada</label>
+        <label for="semLocalFiltro">Evento</label>
+        <select id="semLocalFiltro">
+          <option value="todos" ${semLocal === 'todos' ? 'selected' : ''}>Todos os eventos</option>
+          ${opcoesLocais}
+        </select>
+      </div>
+      <div class="sem-filtro">
+        <label for="semXFiltro"><span class="sem-chip x">X</span>Semana analisada</label>
         <select id="semXFiltro">${opcoesSemanas(semX)}</select>
         <div class="sem-datas">${textoDatas(semX)}</div>
       </div>
       <div class="sem-filtro">
-        <label for="semYFiltro"><span class="sem-chip y">Y</span> Comparar com</label>
+        <label for="semYFiltro"><span class="sem-chip y">Y</span>Comparar com</label>
         <select id="semYFiltro" ${semY ? '' : 'disabled'}>${semY ? opcoesSemanas(semY) : '<option>—</option>'}</select>
         <div class="sem-datas">${textoDatas(semY)}</div>
       </div>
@@ -3269,7 +3286,7 @@ function renderSemanal(dados){
       ${kpi('Ticket médio', 'ticket', formatBRL)}
       ${kpi('Itens por comanda', 'itensPorComanda', n => formatNum(n, 2))}
     </div>
-    <p class="sem-nota">A linha mostra as 8 semanas até a semana X; o ponto vermelho é a semana X.</p>
+    <p class="sem-nota">A linha mostra as 8 semanas até a semana X; o ponto laranja é a semana X.</p>
   </div>`;
 
   // Eventos da semana X, com a comparação contra a vez anterior no mesmo local (histórico completo).
@@ -3313,17 +3330,23 @@ function renderSemanal(dados){
       else if (ordemTier[t.tier] < ordemTier[ty]) mov = `<span class="sem-mov up" title="era ${ty} na semana Y">▲ era ${ty}</span>`;
       else if (ordemTier[t.tier] > ordemTier[ty]) mov = `<span class="sem-mov down" title="era ${ty} na semana Y">▼ era ${ty}</span>`;
     }
-    return `<tr><td><span class="sem-tier t-${t.tier}">${t.tier}</span></td><td>${escapeHtml(t.nome)} ${mov}</td>
+    return `<tr><td><span class="sem-tier t-${t.tier}">${t.tier}</span></td><td><span class="sem-item">${escapeHtml(t.nome)} ${mov}</span></td>
       <td class="n">${formatNum(t.qtd, 0)}</td><td class="n">${formatBRL(t.total)}</td><td class="n">${formatBRL(t.precoMedio)}</td>
       <td class="n">${formatNum(t.pct, 1)}%</td><td class="n">${formatPct(t.acumulado)}</td></tr>`;
   }).join('');
   const tierHTML = `<div class="card">
     <div class="bi-section-title">Tierlist do cardápio (semana X)</div>
-    <p class="sem-nota" style="margin-top:-6px;">Itens em ordem de faturamento. <b>S</b>: os que fazem a primeira metade da receita · <b>A</b>: até 80% · <b>B</b>: até 95% · <b>C</b>: o resto. Preço unitário = faturamento ÷ quantidade (média do que foi cobrado).${ry ? ' A seta mostra o tier que o item tinha na semana Y.' : ''}</p>
+    <div class="sem-tiers-leg">
+      <span><span class="sem-tier t-S">S</span>primeira metade da receita</span>
+      <span><span class="sem-tier t-A">A</span>até 80%</span>
+      <span><span class="sem-tier t-B">B</span>até 95%</span>
+      <span><span class="sem-tier t-C">C</span>o resto</span>
+    </div>
     <div class="sem-tabela"><table>
       <thead><tr><th>Tier</th><th>Item</th><th class="n">Qtd.</th><th class="n">Faturamento</th><th class="n">Preço unit.</th><th class="n">% receita</th><th class="n">Acumulado</th></tr></thead>
       <tbody>${linhasTier}</tbody>
     </table></div>
+    <p class="sem-nota">Itens em ordem de faturamento. Preço unitário = faturamento ÷ quantidade (média do que foi cobrado).${ry ? ' "era S/A/B/C" mostra o tier do item na semana Y.' : ''}</p>
   </div>`;
 
   // Bebida por comanda e itens por comanda.
@@ -3375,7 +3398,7 @@ function renderSemanal(dados){
     <button class="save-btn" id="semAnaliseBtn">${semAnalises.has(chaveAnalise) ? '↻ Gerar de novo' : '✨ Gerar análise'}</button>
   </div>`;
 
-  wrap.innerHTML = toolbar + filtros + kpis + eventosHTML + tierHTML + combosHTML + pagHTML + analiseHTML;
+  wrap.innerHTML = toolbar + filtros + kpis + eventosHTML + tierHTML + `<div class="sem-grade">${combosHTML}${pagHTML}</div>` + analiseHTML;
   ligarToolbar();
   document.getElementById('semLocalFiltro').addEventListener('change', e => { semLocal = e.target.value; semX = null; semY = null; renderSemanal(biDados); });
   document.getElementById('semXFiltro').addEventListener('change', e => { semX = e.target.value; if (semY === semX) semY = null; renderSemanal(biDados); });
