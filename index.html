@@ -924,6 +924,7 @@ async function init(){
       const itensSheet = await resMenu.json();
       if (Array.isArray(itensSheet) && itensSheet.length > 0) {
         MENU_REFERENCIA = itensSheet.map(itemMenu).filter(i => i.chave);
+        menuVeioDaPlanilha = true;
         try { await storageSet('config:menu', JSON.stringify(MENU_REFERENCIA), false); } catch(e){}
       }
     }
@@ -2339,6 +2340,24 @@ function itemMenu(i){
 }
 
 let menuRascunho = [];
+// Só deixa salvar o cardápio na planilha se ele foi lido da planilha nesta
+// abertura do app. Sem isso, um app que abriu sem sinal (ou com a planilha
+// lenta) salvava a lista reserva, que só tem item e preço máximo, e apagava
+// nomes, categorias, descrições e preços do site (aconteceu em 19/10/2026).
+let menuVeioDaPlanilha = false;
+async function recarregarMenuDaPlanilha(){
+  try {
+    const res = await fetchServidor(urlServidor({ action: 'menu' }));
+    if (!res.ok) return false;
+    const itens = await res.json();
+    if (!Array.isArray(itens) || !itens.length) return false;
+    MENU_REFERENCIA = itens.map(itemMenu).filter(i => i.chave);
+    menuVeioDaPlanilha = true;
+    try { await storageSet('config:menu', JSON.stringify(MENU_REFERENCIA), false); } catch(e){}
+    recalcMaiorPrecoCardapio();
+    return true;
+  } catch(e){ return false; }
+}
 let menuRepassePercent = 0;
 let menuAbertos = new Set(); // itens com "🌐 Site" aberto, pra não fechar ao redesenhar
 function renderMenuEditor(){
@@ -2349,6 +2368,15 @@ function renderMenuEditor(){
   msg.textContent = '';
   msg.className = 'save-msg';
   document.getElementById('menuSyncLink').style.display = 'none';
+  if (!menuVeioDaPlanilha && webhookUrl) {
+    msg.textContent = 'Buscando o cardápio da planilha…';
+    recarregarMenuDaPlanilha().then(ok => {
+      if (document.getElementById(VIEW_IDS.menu).style.display !== 'block') return;
+      if (ok) { renderMenuEditor(); return; }
+      msg.textContent = 'Não consegui ler o cardápio da planilha. Dá para ver a lista, mas salvar fica bloqueado até ela carregar: confira a internet e abra esta tela de novo.';
+      msg.className = 'save-msg erro';
+    });
+  }
 }
 function desenharMenuRows(){
   const wrap = document.getElementById('menuRows');
@@ -2503,6 +2531,10 @@ async function salvarCardapioUmaVez(){
   recalcMaiorPrecoCardapio();
 
   if (!webhookUrl) { mostrar('Salvo só neste aparelho: falta a URL da planilha na engrenagem ⚙.', 'erro'); return; }
+  if (!menuVeioDaPlanilha) {
+    mostrar('Não salvei na planilha: o cardápio não foi lido de lá quando o app abriu, e salvar agora apagaria nomes, descrições e preços do site. Feche e abra o app com internet e faça a mudança de novo.', 'erro');
+    return;
+  }
   if (!infoServidor || !infoServidor.versao) infoServidor = await consultarServidor();
   const versao = (infoServidor && infoServidor.versao) || 0;
 
