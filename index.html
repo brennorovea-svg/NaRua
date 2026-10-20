@@ -2547,7 +2547,9 @@ function itemEspecial(i){
     chave: String(i.chave || ''), nome: String(i.nome || ''), tamanho: String(i.tamanho || ''),
     categoria: String(i.categoria || ''), descricao: String(i.descricao || ''), foto: String(i.foto || ''),
     preco: Number(i.preco) || 0, status: ['disponivel', 'esgotado', 'oculto'].includes(i.status) ? i.status : 'disponivel',
-    contem_ovo: !!i.contem_ovo, contem_leite: !!i.contem_leite, contem_carne: !!i.contem_carne
+    contem_ovo: !!i.contem_ovo, contem_leite: !!i.contem_leite, contem_carne: !!i.contem_carne,
+    // "Só no evento" (Apps Script v14): item que só existe no evento; o site destaca
+    exclusivo: !!i.exclusivo
   };
 }
 function precoComAcrescimo(preco, pct, arredondar){
@@ -2560,7 +2562,9 @@ function renderMenuEspeciais(){
   if (!sel) return;
   const versao = infoServidor.versao || 0;
   aviso.innerHTML = versao > 0 && versao < 11
-    ? '<div class="menu-check-aviso">Os cardápios de evento só ficam guardados na planilha depois de publicar o Apps Script v11.</div>' : '';
+    ? '<div class="menu-check-aviso">Os cardápios de evento só ficam guardados na planilha depois de publicar o Apps Script v11.</div>'
+    : versao > 0 && versao < 14
+      ? '<div class="menu-check-aviso">A marcação ⭐ Só no evento só fica guardada na planilha depois de publicar o Apps Script v14.</div>' : '';
   const atual = espRascunho ? espRascunho.nome : sel.value;
   sel.innerHTML = '<option value="">— escolha —</option>' +
     CARDAPIOS_ESPECIAIS.map(c => `<option value="${escapeHtml(c.nome)}">⭐ ${escapeHtml(c.nome)} (${(c.itens || []).length} itens)</option>`).join('') +
@@ -2595,6 +2599,9 @@ function desenharEspRows(){
         <div class="field" style="flex:1 1 130px;"><label>Situação</label><select data-esp="status" data-idx="${idx}">${STATUS_MENU.map(([v, t]) => `<option value="${v}"${m.status === v ? ' selected' : ''}>${t}</option>`).join('')}</select></div>
         <div class="field" style="flex:2 1 200px;"><span class="menu-check-titulo">Contém:</span>
           ${ALERGENICOS.map(([campo, txt]) => `<label class="menu-check"><input type="checkbox" data-esp="${campo}" data-idx="${idx}"${m[campo] ? ' checked' : ''}> ${txt}</label>`).join('')}</div>
+      </div>
+      <div class="field-row">
+        <label class="menu-check"><input type="checkbox" data-esp="exclusivo" data-idx="${idx}"${m.exclusivo ? ' checked' : ''}> ⭐ Só no evento <span class="label-opcional">(destaque no site)</span></label>
       </div>
     </div>`).join('');
 }
@@ -2674,7 +2681,8 @@ document.getElementById('espMontarBtn').addEventListener('click', montarCardapio
 document.getElementById('espSalvarBtn').addEventListener('click', salvarCardapioEspecialApp);
 document.getElementById('espAddBtn').addEventListener('click', () => {
   if (!espRascunho) return;
-  espRascunho.itens.push(itemEspecial({ categoria: 'Pratos' }));
+  // produto novo no cardápio do evento costuma ser exclusivo dele (ex.: Combo ODD)
+  espRascunho.itens.push(itemEspecial({ categoria: 'Pratos', exclusivo: true }));
   desenharEspRows();
 });
 document.getElementById('espAplicarBtn').addEventListener('click', () => {
