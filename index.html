@@ -369,6 +369,7 @@
   @media (min-width:900px){ #semAnaliseBtn{width:auto;min-width:300px;padding:14px 28px;} }
   /* v11: 📅 Agenda */
   .home-card.c-paper{background:var(--paper);color:var(--ink);}
+  .home-card.c-evento{background:var(--paper);color:var(--ink);border-style:dashed;}
   input[type=time]{width:100%;padding:10px 11px;border:2px solid var(--ink);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:14px;background:#fff;color:var(--ink);}
   .agenda-voz{display:flex;gap:10px;align-items:stretch;}
   .agenda-frase{flex:1;width:100%;min-height:84px;padding:10px 11px;border:2px solid var(--ink);border-radius:8px;font-family:'Poppins',sans-serif;font-size:14px;background:#fff;color:var(--ink);resize:vertical;}
@@ -486,6 +487,10 @@
         <span class="icon">🍜</span>
         <span class="title">Editar menu</span>
       </button>
+      <button class="home-card c-evento" type="button" data-view="menuEvento">
+        <span class="icon">⭐</span>
+        <span class="title">Editar menu de evento</span>
+      </button>
       <button class="home-card c-cyan" type="button" data-view="bi">
         <span class="icon">📊</span>
         <span class="title">Inteligência</span>
@@ -598,9 +603,12 @@
       <a id="menuSyncLink" class="lote-btn" target="_blank" rel="noopener" style="display:none;margin-top:10px;">📤 Sincronizar cardápio com a planilha</a>
     </div>
 
+  </div>
+
+  <div id="viewMenuEvento" style="display:none;">
     <div class="step-label">⭐ Cardápios de evento</div>
     <div class="card" id="espCard">
-      <div class="evento-hint">Para eventos fora dos pontos fixos (quinta e sábado usam o cardápio acima). Crie o cardápio do evento a partir do padrão com um % de acréscimo, ajuste os preços, tire o que não vai ter e inclua produtos novos. Depois ligue o cardápio ao evento na 📅 Agenda: o site mostra esse cardápio só no dia do evento e o app usa esses preços no lançamento.</div>
+      <div class="evento-hint">Aqui você edita <b>só os cardápios de evento</b>: o cardápio padrão (aba Menu, em 🍜 Editar menu) não muda nesta tela. Use para eventos fora dos pontos fixos (quinta e sábado usam o cardápio padrão). Crie o cardápio a partir do padrão com um % de acréscimo, ajuste os preços, tire o que não vai ter e inclua produtos novos. Depois ligue o cardápio ao evento na 📅 Agenda: o site mostra esse cardápio para o evento e o app usa esses preços no lançamento.</div>
       <div id="espAviso"></div>
       <div class="field-row">
         <div class="field">
@@ -906,11 +914,12 @@ const eventoLocal = document.getElementById('eventoLocal');
 const eventoAcrescimo = document.getElementById('eventoAcrescimo');
 
 const backBtn = document.getElementById('backBtn');
-const VIEW_IDS = { home:'viewHome', comandas:'viewComandas', menu:'viewMenu', bi:'viewBI', semanal:'viewSemanal', agenda:'viewAgenda', consultarCompras:'viewConsultarCompras' };
+const VIEW_IDS = { home:'viewHome', comandas:'viewComandas', menu:'viewMenu', menuEvento:'viewMenuEvento', bi:'viewBI', semanal:'viewSemanal', agenda:'viewAgenda', consultarCompras:'viewConsultarCompras' };
 const VIEW_SUBTITLES = {
   home: 'Escolha o que você quer fazer',
   comandas: 'Registro de vendas do food truck',
   menu: 'Cardápio do app e do site',
+  menuEvento: 'Cardápios dos eventos especiais',
   bi: 'Inteligência do negócio',
   semanal: 'Acompanhamento semanal',
   agenda: 'Onde o food truck vai estar',
@@ -923,6 +932,7 @@ function showView(view){
   gearBtn.style.display = 'flex'; // configurações valem pro app todo (planilha e leitura por IA)
   document.getElementById('pageSubtitle').textContent = VIEW_SUBTITLES[view] || VIEW_SUBTITLES.home;
   if (view === 'menu') renderMenuEditor();
+  if (view === 'menuEvento') renderMenuEventoView();
   if (view === 'bi') loadBI();
   if (view === 'semanal') loadSemanal();
   if (view === 'agenda') loadAgenda();
@@ -2710,9 +2720,17 @@ document.getElementById('espRows').addEventListener('click', e => {
   espRascunho.itens.splice(Number(b.dataset.idx), 1);
   desenharEspRows();
 });
-function renderMenuEditor(){
+// v15: os cardápios de evento ficam numa tela própria (⭐ Editar menu de evento),
+// separada da edição do cardápio padrão.
+function renderMenuEventoView(){
+  const categorias = [...new Set([...CATEGORIAS_PADRAO, ...MENU_REFERENCIA.map(m => m.categoria).filter(Boolean)])];
+  document.getElementById('categoriasList').innerHTML = categorias.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
   renderMenuEspeciais();
   carregarCardapiosEspeciais().then(renderMenuEspeciais);
+  // "Montar a partir do cardápio padrão" precisa do cardápio lido da planilha
+  if (!menuVeioDaPlanilha && webhookUrl) recarregarMenuDaPlanilha();
+}
+function renderMenuEditor(){
   menuRascunho = MENU_REFERENCIA.map(itemMenu);
   menuAbertos = new Set();
   desenharMenuRows();
@@ -4210,7 +4228,7 @@ async function conferirEventoAgenda(ev){
     avisos.push(`Não achei o cardápio "${escapeHtml(ev.cardapio)}" na aba Cardápios especiais. Os que existem: ${CARDAPIOS_ESPECIAIS.map(c => escapeHtml(c.nome)).join(', ')}.`);
   }
   if (ev.status === 'Confirmado' && !ev.repetir && !ev.cardapio && (infoServidor.versao || 0) >= 11) {
-    avisos.push('Evento fora dos pontos fixos <b>sem cardápio do evento</b>: o site e o app vão usar o cardápio padrão. Se os preços ou os produtos mudam, crie o cardápio em 🍜 Cardápio → ⭐ Cardápios de evento e escolha aqui.');
+    avisos.push('Evento fora dos pontos fixos <b>sem cardápio do evento</b>: o site e o app vão usar o cardápio padrão. Se os preços ou os produtos mudam, crie o cardápio em ⭐ Editar menu de evento (tela inicial) e escolha aqui.');
   }
   if ((ev.especial || ev.cardapio) && (infoServidor.versao || 0) < 11) {
     avisos.push('Evento especial e cardápio especial só ficam guardados depois de publicar o Apps Script v11.');
