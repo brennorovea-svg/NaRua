@@ -1185,7 +1185,7 @@ function updateModalModeUI(){
 modeOptions.addEventListener('change', updateModalModeUI);
 
 function getEvento(){
-  return { data: eventoData.value, local: eventoLocal.value.trim(), acrescimo: parseFloat(eventoAcrescimo.value) || 0 };
+  return { data: eventoData.value, local: localPadrao(eventoLocal.value), acrescimo: parseFloat(eventoAcrescimo.value) || 0 };
 }
 
 async function handleFiles(fileList){
@@ -2997,6 +2997,7 @@ async function loadBI(force){
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const dados = await res.json();
     if (!Array.isArray(dados)) throw new Error('resposta inesperada');
+    dados.forEach(r => { if (r && r.local) r.local = localPadrao(r.local); });
     biDados = dados;
     biUltimaAtualizacao = new Date();
     renderBI(biDados);
@@ -3716,6 +3717,7 @@ async function loadSemanal(force){
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const dados = await res.json();
     if (!Array.isArray(dados)) throw new Error((dados && dados.erro === 'login') ? 'sua sessão terminou; entre de novo com a conta Google' : 'resposta inesperada');
+    dados.forEach(r => { if (r && r.local) r.local = localPadrao(r.local); });
     biDados = dados;
     biUltimaAtualizacao = new Date();
     renderSemanal(biDados);
@@ -4027,8 +4029,25 @@ let agendaIniciada = false;
 const DIAS_SEMANA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
 const DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-function chaveLocal(s){
+function chaveLocalBruta(s){
   return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+// Nome padrão de cada local (Brenno, 20/10/2026): grafias diferentes do mesmo
+// lugar ("Odd graffiti", "ODD Grafiti") separavam os relatórios. Vale no
+// lançamento, na agenda e na leitura das comandas antigas. Para incluir outro
+// local, acrescente [regra, 'Nome padrão'] (a regra vê o nome sem acento e em
+// minúsculas).
+const LOCAIS_PADRAO = [
+  [/^od+(\s|-|$)/, 'ODD Graffiti']
+];
+function localPadrao(nome){
+  const limpo = String(nome || '').replace(/\s+/g, ' ').trim();
+  const k = chaveLocalBruta(limpo);
+  const achado = LOCAIS_PADRAO.find(([regra]) => regra.test(k));
+  return achado ? achado[1] : limpo;
+}
+function chaveLocal(s){
+  return chaveLocalBruta(localPadrao(s));
 }
 function somarDias(iso, n){
   const d = new Date(iso + 'T12:00:00Z');
@@ -4057,17 +4076,17 @@ async function carregarEventos(force){
 
 // Datas em que o food truck vai estar em algum lugar, de "de" até "de + dias - 1".
 // Mesmas regras do site: "Toda semana" repete no dia da semana da Data, a partir
-// dela; linha Cancelada de um dia tira só aquele dia; linha avulsa no mesmo
-// local e dia substitui a fixa. Inclui eventos que não aparecem no site.
+// dela; linha Cancelada de um dia tira só aquele dia; evento avulso confirmado
+// num dia substitui todos os pontos fixos daquele dia (v14, Apps Script v12). Inclui eventos que não aparecem no site.
 function ocorrenciasAgenda(eventos, de, dias){
-  const avulsos = new Map(), cancelados = new Set(), fixos = [];
+  const avulsos = new Map(), cancelados = new Set(), fixos = [], diasComAvulso = new Set();
   const chave = (local, data) => chaveLocal(local) + '|' + data;
   const ate = somarDias(de, dias - 1);
   (eventos || []).forEach(ev => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(ev.data || '')) return;
     if (ev.status === 'Cancelado') { if (!ev.repetir) cancelados.add(chave(ev.local, ev.data)); return; }
     if (ev.repetir) fixos.push(ev);
-    else if (ev.data >= de && ev.data <= ate) avulsos.set(chave(ev.local, ev.data), ev);
+    else { diasComAvulso.add(ev.data); if (ev.data >= de && ev.data <= ate) avulsos.set(chave(ev.local, ev.data), ev); }
   });
   const lista = [];
   avulsos.forEach((ev, k) => lista.push({ data: ev.data, ev, fixo: false, cancelado: cancelados.has(k) }));
@@ -4076,7 +4095,8 @@ function ocorrenciasAgenda(eventos, de, dias){
     fixos.forEach(f => {
       if (d < f.data || diaDaSemana(d) !== diaDaSemana(f.data)) return;
       const k = chave(f.local, d);
-      if (avulsos.has(k)) return;
+      // Evento avulso confirmado no dia substitui todos os pontos fixos daquele dia.
+      if (avulsos.has(k) || diasComAvulso.has(d)) return;
       lista.push({ data: d, ev: f, fixo: true, cancelado: cancelados.has(k) });
     });
   }
@@ -4088,7 +4108,7 @@ function ocorrenciasAgenda(eventos, de, dias){
 async function locaisConhecidos(){
   const mapa = new Map();
   const add = (local, endereco) => {
-    const nome = String(local || '').trim();
+    const nome = localPadrao(local);
     if (!nome) return;
     const k = chaveLocal(nome);
     const atual = mapa.get(k);
@@ -4120,7 +4140,7 @@ function lerFormAgenda(){
   const c = agendaCampos();
   return {
     id: agendaEditando || '', data: c.data.value, repetir: c.repetir.checked,
-    local: c.local.value.trim(), evento: c.evento.value.trim(), endereco: c.endereco.value.trim(),
+    local: localPadrao(c.local.value), evento: c.evento.value.trim(), endereco: c.endereco.value.trim(),
     inicio: c.inicio.value, fim: c.fim.value, status: c.status.value,
     aviso: c.aviso.value.trim(), mostrar: c.mostrar.checked, frase: agendaFraseUsada,
     especial: c.especial.checked || !!c.cardapio.value.trim(), cardapio: c.cardapio.value.trim()
@@ -4525,7 +4545,15 @@ async function sugerirLocalDaAgenda(){
 eventoData.addEventListener('change', sugerirLocalDaAgenda);
 // v14: data ou local mudou → volta a escolher o cardápio pela agenda.
 eventoData.addEventListener('change', () => { cardapioLancamentoManual = false; atualizarCardapioDoEvento(); });
-eventoLocal.addEventListener('change', () => { cardapioLancamentoManual = false; atualizarCardapioDoEvento(); });
+eventoLocal.addEventListener('change', () => {
+  const padrao = localPadrao(eventoLocal.value);
+  if (padrao !== eventoLocal.value) eventoLocal.value = padrao;
+  cardapioLancamentoManual = false; atualizarCardapioDoEvento();
+});
+document.getElementById('agLocal').addEventListener('change', e => {
+  const padrao = localPadrao(e.target.value);
+  if (padrao !== e.target.value) e.target.value = padrao;
+});
 eventoLocal.addEventListener('input', () => { if (!cardapioLancamentoManual) atualizarCardapioDoEvento(); });
 document.getElementById('cardapioEventoSel').addEventListener('change', e => {
   cardapioLancamentoManual = true;
