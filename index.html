@@ -397,6 +397,17 @@
   .agenda-sub{font-family:'Poppins',sans-serif;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin:14px 0 2px;}
   .agenda-sub:first-child{margin-top:0;}
   .agenda-vazio{font-family:'Poppins',sans-serif;font-size:12.5px;color:var(--ink-soft);}
+  .cardapio-evento{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:#fff6ea;border:2px solid var(--orange2, #f49140);border-radius:10px;padding:10px 12px;}
+  .cardapio-evento label{margin:0;}
+  .cardapio-evento select{flex:1 1 180px;width:auto;}
+  .cardapio-evento .evento-hint{flex:1 1 100%;margin:0;}
+  .menu-especial{border:2px solid var(--ink);border-radius:10px;background:#fffdf6;padding:10px 12px;margin-top:10px;font-family:'Poppins',sans-serif;font-size:13px;}
+  .menu-especial b{font-family:'Titan One',cursive;font-weight:400;font-size:15px;}
+  .menu-especial ul{margin:6px 0 0;padding-left:18px;}
+  .esp-item{border:2px solid var(--ink);border-radius:10px;background:#fff;padding:10px;margin-top:10px;}
+  .esp-item.oculto{opacity:.55;}
+  .esp-item .field-row{margin-top:6px;}
+  .esp-item .field-row:first-child{margin-top:0;}
   .agenda-sugestao{margin-top:10px;font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
   .agenda-chip{border:2px solid var(--ink);background:var(--orange);color:var(--ink);border-radius:20px;padding:5px 12px;font-family:'Poppins',sans-serif;font-weight:700;font-size:12px;cursor:pointer;}
   .agenda-editando{font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;color:var(--red);margin-bottom:10px;}
@@ -516,6 +527,11 @@
       </div>
     </div>
     <div id="agendaSugestao" class="agenda-sugestao" style="display:none;"></div>
+    <div id="cardapioEventoBox" class="cardapio-evento" style="display:none;">
+      <label for="cardapioEventoSel">⭐ Cardápio deste evento</label>
+      <select id="cardapioEventoSel"></select>
+      <div class="evento-hint" id="cardapioEventoHint"></div>
+    </div>
     <div class="evento-hint">esses dados vão junto com todas as comandas enviadas nesta sessão. O % de acréscimo é só informativo — vai junto pra planilha, mas não muda o valor de nenhum item.</div>
   </div>
 
@@ -580,6 +596,49 @@
       <button class="save-btn" id="saveMenuBtn">Salvar cardápio</button>
       <div id="menuSaveMsg" class="save-msg"></div>
       <a id="menuSyncLink" class="lote-btn" target="_blank" rel="noopener" style="display:none;margin-top:10px;">📤 Sincronizar cardápio com a planilha</a>
+    </div>
+
+    <div class="step-label">⭐ Cardápios de evento</div>
+    <div class="card" id="espCard">
+      <div class="evento-hint">Para eventos fora dos pontos fixos (quinta e sábado usam o cardápio acima). Crie o cardápio do evento a partir do padrão com um % de acréscimo, ajuste os preços, tire o que não vai ter e inclua produtos novos. Depois ligue o cardápio ao evento na 📅 Agenda: o site mostra esse cardápio só no dia do evento e o app usa esses preços no lançamento.</div>
+      <div id="espAviso"></div>
+      <div class="field-row">
+        <div class="field">
+          <label for="espSel">Cardápio</label>
+          <select id="espSel"></select>
+        </div>
+      </div>
+      <div id="espNovo" style="display:none;">
+        <div class="field-row alinhar-base">
+          <div class="field" style="flex:2 1 180px;">
+            <label for="espNome">Nome do cardápio</label>
+            <input type="text" id="espNome" placeholder="Ex: Bombeiros, ODD Halloween">
+          </div>
+          <div class="field" style="flex:1 1 110px;">
+            <label for="espPct">% de acréscimo</label>
+            <input type="number" id="espPct" min="0" step="1" placeholder="Ex: 20">
+          </div>
+          <div class="field" style="flex:1 1 150px;">
+            <label class="agenda-check" for="espArred"><input type="checkbox" id="espArred" checked> Arredondar para cima (R$ inteiro)</label>
+          </div>
+        </div>
+        <button class="save-btn" id="espMontarBtn" type="button">Montar a partir do cardápio padrão</button>
+      </div>
+      <div id="espEditor" style="display:none;">
+        <div class="field-row alinhar-base" style="margin-top:12px;">
+          <div class="field" style="flex:1 1 140px;">
+            <label for="espPctAplicar">Aplicar % sobre os preços abaixo</label>
+            <input type="number" id="espPctAplicar" step="1" placeholder="Ex: 10">
+          </div>
+          <div class="field" style="flex:1 1 140px;">
+            <button class="add-item" id="espAplicarBtn" type="button" style="margin-top:0;">Aplicar</button>
+          </div>
+        </div>
+        <div id="espRows"></div>
+        <button class="add-item" id="espAddBtn" type="button">+ produto novo neste cardápio</button>
+        <button class="save-btn" id="espSalvarBtn" type="button">Salvar cardápio do evento</button>
+        <div id="espMsg" class="save-msg"></div>
+      </div>
     </div>
   </div>
 
@@ -657,6 +716,17 @@
           <input type="text" id="agAviso" placeholder="Ex: hoje com yakissoba vegano">
         </div>
       </div>
+      <div class="field-row alinhar-base">
+        <div class="field" style="flex:1 1 170px;">
+          <label class="agenda-check" for="agEspecial"><input type="checkbox" id="agEspecial"> ⭐ Evento especial</label>
+        </div>
+        <div class="field" style="flex:2 1 200px;">
+          <label for="agCardapio">Cardápio especial <span class="label-opcional">(opcional, da aba Cardápios especiais)</span></label>
+          <input type="text" id="agCardapio" list="agCardapiosList" placeholder="Ex: ODD Halloween">
+          <datalist id="agCardapiosList"></datalist>
+        </div>
+      </div>
+      <div class="evento-hint" style="margin:0 0 8px;">Evento especial aparece sempre no "Onde estamos" do site, numa seção própria. Com cardápio especial, o site mostra esse cardápio no dia do evento e o app usa os preços dele ao lançar as comandas.</div>
       <label class="agenda-check" for="agMostrar"><input type="checkbox" id="agMostrar" checked> 🌐 Mostrar no site ("Onde estamos")</label>
       <div id="agAvisos"></div>
       <button class="save-btn" id="agSalvarBtn" type="button">Salvar evento</button>
@@ -932,6 +1002,13 @@ async function init(){
     }
   } catch(e){ /* sem sinal ou dentro do chat: segue com o que já tem (local ou padrão do código) */ }
   recalcMaiorPrecoCardapio();
+  // v14: cardápios especiais (Apps Script v11). Guardados no aparelho como reserva.
+  try {
+    const ce = await storageGet('config:cardapiosEspeciais', false);
+    const lista = ce && ce.value ? JSON.parse(ce.value) : null;
+    if (Array.isArray(lista)) CARDAPIOS_ESPECIAIS = lista;
+  } catch(e){}
+  carregarCardapiosEspeciais().then(atualizarCardapioDoEvento);
   await loadHistory();
   await restaurarRascunho();
   showView('home');
@@ -1534,14 +1611,15 @@ async function analyzeImagesBatch(imagens){
     { type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }
   ])).flat();
 
-  const menuTexto = MENU_REFERENCIA.length
-    ? MENU_REFERENCIA.map(m => `- ${m.chave}: até R$ ${m.max.toFixed(2)} por unidade`).join('\n')
+  const menuLeitura = menuDoLancamento();
+  const menuTexto = menuLeitura.length
+    ? menuLeitura.map(m => `- ${m.chave}: até R$ ${m.max.toFixed(2)} por unidade`).join('\n')
     : '(nenhum item cadastrado)';
 
   const pedido = {
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 4000,
-      system: `Você extrai dados de comandas/pedidos de restaurante a partir de fotos. Cada foto recebida é uma comanda separada e independente, na ordem em que aparecem (Comanda 1, Comanda 2, etc). As comandas têm uma coluna de quantidade vendida e uma coluna de valor — esse valor escrito já é o TOTAL da linha (quantidade vezes o preço unitário), não é o preço unitário individual. Por exemplo, se a linha mostra quantidade 2 e valor 50, isso significa 2 unidades somando R$ 50 no total, e você deve devolver quantidade=2 e valor_total=50. Leia os números exatamente como estão escritos. As comandas também têm caixas marcadas com as siglas CR (crédito), DB (débito), PIX e DN (dinheiro) indicando a forma de pagamento — geralmente uma está circulada, marcada com X, ou destacada. Na base da comanda também costuma haver o nome do cliente. Algumas comandas também têm um número escrito em tinta/caneta VERMELHA no canto superior direito da folha — esse número é o identificador único daquela comanda (ID). Procure especificamente por esse número vermelho no canto superior direito; se ele existir e for legível, devolva-o como texto exatamente como está escrito (pode ter zeros à esquerda, ex: "042"); se não houver número vermelho visível ou ele estiver ilegível, devolva null nesse campo — não confunda com outros números da comanda (valores, quantidades, telefone). Responda APENAS com um JSON válido, sem markdown, sem texto adicional, sem nenhum comentário ou frase antes ou depois (nunca escreva coisas como "Analisando a imagem..." ou qualquer introdução — a primeira coisa que você escrever deve ser o caractere '{'), no formato exato: {"comandas": [{"numero": string ou null, "pagamento": "Crédito" | "Débito" | "Pix" | "Dinheiro" | "Não identificado", "cliente": string ou null, "itens": [{"nome": string, "quantidade": number, "valor_total": number}]}]}. O array "comandas" deve ter exatamente ${imagens.length} posições, uma para cada foto recebida, na mesma ordem. Para o campo "nome", quando o item escrito for um destes produtos, use exatamente este nome: ${LISTA_NOMES_PADRAO.join(', ')}. Se não for nenhum deles, escreva o nome como está na comanda. Quantidade padrão 1 se não estiver escrita. Não invente itens que não estão na comanda. Se não conseguir identificar a forma de pagamento, use "Não identificado". Se não encontrar cliente, use null.
+      system: `Você extrai dados de comandas/pedidos de restaurante a partir de fotos. Cada foto recebida é uma comanda separada e independente, na ordem em que aparecem (Comanda 1, Comanda 2, etc). As comandas têm uma coluna de quantidade vendida e uma coluna de valor — esse valor escrito já é o TOTAL da linha (quantidade vezes o preço unitário), não é o preço unitário individual. Por exemplo, se a linha mostra quantidade 2 e valor 50, isso significa 2 unidades somando R$ 50 no total, e você deve devolver quantidade=2 e valor_total=50. Leia os números exatamente como estão escritos. As comandas também têm caixas marcadas com as siglas CR (crédito), DB (débito), PIX e DN (dinheiro) indicando a forma de pagamento — geralmente uma está circulada, marcada com X, ou destacada. Na base da comanda também costuma haver o nome do cliente. Algumas comandas também têm um número escrito em tinta/caneta VERMELHA no canto superior direito da folha — esse número é o identificador único daquela comanda (ID). Procure especificamente por esse número vermelho no canto superior direito; se ele existir e for legível, devolva-o como texto exatamente como está escrito (pode ter zeros à esquerda, ex: "042"); se não houver número vermelho visível ou ele estiver ilegível, devolva null nesse campo — não confunda com outros números da comanda (valores, quantidades, telefone). Responda APENAS com um JSON válido, sem markdown, sem texto adicional, sem nenhum comentário ou frase antes ou depois (nunca escreva coisas como "Analisando a imagem..." ou qualquer introdução — a primeira coisa que você escrever deve ser o caractere '{'), no formato exato: {"comandas": [{"numero": string ou null, "pagamento": "Crédito" | "Débito" | "Pix" | "Dinheiro" | "Não identificado", "cliente": string ou null, "itens": [{"nome": string, "quantidade": number, "valor_total": number}]}]}. O array "comandas" deve ter exatamente ${imagens.length} posições, uma para cada foto recebida, na mesma ordem. Para o campo "nome", quando o item escrito for um destes produtos, use exatamente este nome: ${nomesParaLeitura().join(', ')}. Se não for nenhum deles, escreva o nome como está na comanda. Quantidade padrão 1 se não estiver escrita. Não invente itens que não estão na comanda. Se não conseguir identificar a forma de pagamento, use "Não identificado". Se não encontrar cliente, use null.
 
 Preços de referência do cardápio deste food truck (por unidade, aproximados):
 ${menuTexto}
@@ -1675,10 +1753,89 @@ function encontrarNoMenu(nome){
 // caso, tenta preencher automaticamente com o preço do cardápio de
 // referência e marca o item como "preenchido automaticamente", pra
 // conferência humana antes de enviar.
+// ---------- v14: cardápio especial do evento (Apps Script v11) ----------
+// A aba "Cardápios especiais" tem o cardápio completo de cada evento especial
+// (ex.: ODD Halloween). Ao lançar as comandas de um evento com cardápio
+// especial, a leitura, o preço automático e o alerta de preço usam os preços
+// dele; item que não está nele cai no cardápio normal (aba Menu). O resto do
+// app (Cardápio, Inteligência, Acom. Semanal) continua no cardápio normal.
+let CARDAPIOS_ESPECIAIS = [];
+let cardapioLancamento = null;        // {nome, itens} ou null = cardápio normal
+let cardapioLancamentoManual = false; // a pessoa escolheu no seletor
+function acharCardapioEspecial(nome){
+  const k = normalizarTexto(nome);
+  return k ? CARDAPIOS_ESPECIAIS.find(c => normalizarTexto(c.nome) === k) || null : null;
+}
+function menuDoLancamento(){
+  if (!cardapioLancamento) return MENU_REFERENCIA;
+  const maiorPrimeiro = (a, b) => b.chave.length - a.chave.length;
+  const esp = (cardapioLancamento.itens || [])
+    .map(i => ({ chave: normalizarTexto(i.chave), max: Number(i.preco) || 0, categoria: i.categoria || '', especial: true }))
+    .filter(i => i.chave && i.max).sort(maiorPrimeiro);
+  const base = MENU_REFERENCIA.filter(m => !esp.some(e => e.chave === m.chave)).slice().sort(maiorPrimeiro);
+  return esp.concat(base);
+}
+function encontrarNoMenuLancamento(nome){
+  const norm = normalizarTexto(nome);
+  if (!norm) return null;
+  return menuDoLancamento().find(m => norm.includes(m.chave)) || null;
+}
+function maiorPrecoLancamento(){
+  const l = menuDoLancamento();
+  return l.length ? Math.max(...l.map(m => m.max)) : MAIOR_PRECO_CARDAPIO;
+}
+function nomesParaLeitura(){
+  if (!cardapioLancamento) return LISTA_NOMES_PADRAO;
+  return [...new Set(LISTA_NOMES_PADRAO.concat((cardapioLancamento.itens || []).map(i => i.chave).filter(Boolean)))];
+}
+async function carregarCardapiosEspeciais(){
+  if ((infoServidor.versao || 0) < 11 || !webhookUrl) return;
+  try {
+    const res = await fetchServidor(urlServidor({ action: 'cardapiosEspeciais' }));
+    const j = await res.json();
+    if (j && j.ok && Array.isArray(j.cardapios)) {
+      CARDAPIOS_ESPECIAIS = j.cardapios;
+      try { await storageSet('config:cardapiosEspeciais', JSON.stringify(CARDAPIOS_ESPECIAIS), false); } catch(e){}
+    }
+  } catch(e){ /* sem sinal: fica com o que estava guardado no aparelho */ }
+}
+// Escolhe o cardápio do lançamento pela agenda (data + local com cardápio
+// especial), a não ser que a pessoa tenha escolhido no seletor.
+async function atualizarCardapioDoEvento(){
+  const box = document.getElementById('cardapioEventoBox');
+  const sel = document.getElementById('cardapioEventoSel');
+  const hint = document.getElementById('cardapioEventoHint');
+  if (!box) return;
+  if (!CARDAPIOS_ESPECIAIS.length) {
+    box.style.display = 'none';
+    if (cardapioLancamento) { cardapioLancamento = null; renderComandas(); }
+    return;
+  }
+  let daAgenda = null;
+  if (!cardapioLancamentoManual && eventoData.value && chaveLocal(eventoLocal.value) && (infoServidor.versao || 0) >= 8) {
+    try {
+      const eventos = await carregarEventos();
+      const oc = ocorrenciasAgenda(eventos, eventoData.value, 1)
+        .find(o => !o.cancelado && o.ev.cardapio && chaveLocal(o.ev.local) === chaveLocal(eventoLocal.value));
+      if (oc) daAgenda = acharCardapioEspecial(oc.ev.cardapio);
+    } catch(e){}
+  }
+  const antes = cardapioLancamento ? cardapioLancamento.nome : '';
+  if (!cardapioLancamentoManual) cardapioLancamento = daAgenda;
+  sel.innerHTML = '<option value="">Cardápio normal (aba Menu)</option>' +
+    CARDAPIOS_ESPECIAIS.map(c => `<option value="${escapeHtml(c.nome)}">⭐ ${escapeHtml(c.nome)}</option>`).join('');
+  sel.value = cardapioLancamento ? cardapioLancamento.nome : '';
+  hint.textContent = cardapioLancamento
+    ? `Os preços de ${cardapioLancamento.nome} valem para a leitura, o preço automático e o alerta de preço deste lançamento.` + (daAgenda && !cardapioLancamentoManual ? ' Escolhido pela agenda.' : '')
+    : 'Alertas de preço pelo cardápio normal. Se este evento teve cardápio especial, escolha aqui.';
+  box.style.display = 'flex';
+  if ((cardapioLancamento ? cardapioLancamento.nome : '') !== antes) renderComandas();
+}
+
 function tentarPreencherAutomatico(item){
   if (item.valor_total) return item;
   if (!item.nome) return item;
-  const doMenu = encontrarNoMenu(item.nome);
+  const doMenu = encontrarNoMenuLancamento(item.nome);
   if (!doMenu || !doMenu.max) return item;
   const qtd = Number(item.quantidade) || 1;
   return { ...item, valor_total: doMenu.max * qtd, autoPreenchido: true };
@@ -1690,11 +1847,11 @@ function avaliarItem(item){
   const quantidade = Number(item.quantidade) || 1;
   if (valorTotal <= 0) return { suspeito: false };
   const precoUnitario = valorTotal / quantidade;
-  const doMenu = encontrarNoMenu(item.nome);
-  const limite = doMenu ? doMenu.max * TOLERANCIA_ITEM_CONHECIDO : MAIOR_PRECO_CARDAPIO * TOLERANCIA_ITEM_DESCONHECIDO;
+  const doMenu = encontrarNoMenuLancamento(item.nome);
+  const limite = doMenu ? doMenu.max * TOLERANCIA_ITEM_CONHECIDO : maiorPrecoLancamento() * TOLERANCIA_ITEM_DESCONHECIDO;
   if (precoUnitario > limite || valorTotal > VALOR_TOTAL_ABSURDO){
     const motivo = doMenu
-      ? `"${item.nome || 'item'}" custa ${formatBRL(doMenu.max)} no cardápio (já com margem de repasse até ${formatBRL(limite)}), mas aqui está ${formatBRL(precoUnitario)}/un.`
+      ? `"${item.nome || 'item'}" custa ${formatBRL(doMenu.max)} no cardápio${doMenu.especial && cardapioLancamento ? ' ' + cardapioLancamento.nome : ''} (já com margem de repasse até ${formatBRL(limite)}), mas aqui está ${formatBRL(precoUnitario)}/un.`
       : `"${item.nome || 'item'}" está a ${formatBRL(precoUnitario)}/un — bem acima do maior preço do cardápio, mesmo com margem (limite ${formatBRL(limite)}).`;
     return { suspeito: true, motivo };
   }
@@ -2379,7 +2536,175 @@ async function recarregarMenuDaPlanilha(){
 }
 let menuRepassePercent = 0;
 let menuAbertos = new Set(); // itens com "🌐 Site" aberto, pra não fechar ao redesenhar
+// ---------- v14: cardápios de evento (aba "Cardápios especiais", Apps Script v11) ----------
+// Cada item: chave = nome que vai para as comandas (nome padrão do produto),
+// nome/tamanho/categoria/descricao/foto = o que o site mostra, preco = preço
+// daquele evento, status e caixinhas como no cardápio normal.
+let espRascunho = null; // {nome, itens:[...]}
+function itemEspecial(i){
+  i = i || {};
+  return {
+    chave: String(i.chave || ''), nome: String(i.nome || ''), tamanho: String(i.tamanho || ''),
+    categoria: String(i.categoria || ''), descricao: String(i.descricao || ''), foto: String(i.foto || ''),
+    preco: Number(i.preco) || 0, status: ['disponivel', 'esgotado', 'oculto'].includes(i.status) ? i.status : 'disponivel',
+    contem_ovo: !!i.contem_ovo, contem_leite: !!i.contem_leite, contem_carne: !!i.contem_carne
+  };
+}
+function precoComAcrescimo(preco, pct, arredondar){
+  const v = (Number(preco) || 0) * (1 + (Number(pct) || 0) / 100);
+  return arredondar ? Math.ceil(v - 0.001) : Math.round(v * 100) / 100;
+}
+function renderMenuEspeciais(){
+  const sel = document.getElementById('espSel');
+  const aviso = document.getElementById('espAviso');
+  if (!sel) return;
+  const versao = infoServidor.versao || 0;
+  aviso.innerHTML = versao > 0 && versao < 11
+    ? '<div class="menu-check-aviso">Os cardápios de evento só ficam guardados na planilha depois de publicar o Apps Script v11.</div>' : '';
+  const atual = espRascunho ? espRascunho.nome : sel.value;
+  sel.innerHTML = '<option value="">— escolha —</option>' +
+    CARDAPIOS_ESPECIAIS.map(c => `<option value="${escapeHtml(c.nome)}">⭐ ${escapeHtml(c.nome)} (${(c.itens || []).length} itens)</option>`).join('') +
+    '<option value="__novo">+ Novo cardápio de evento</option>';
+  if (espRascunho && espRascunho.novo) sel.value = '__novo';
+  else if (atual && acharCardapioEspecial(atual)) sel.value = acharCardapioEspecial(atual).nome;
+  document.getElementById('espNovo').style.display = sel.value === '__novo' ? 'block' : 'none';
+  document.getElementById('espEditor').style.display = espRascunho ? 'block' : 'none';
+  desenharEspRows();
+}
+function desenharEspRows(){
+  const wrap = document.getElementById('espRows');
+  if (!wrap) return;
+  if (!espRascunho) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<div class="evento-hint" style="margin-top:10px;"><b>${escapeHtml(espRascunho.nome)}</b>: ${espRascunho.itens.length} itens. "Nas comandas" é o nome que vai para a planilha de vendas: use o nome de sempre do produto (ex.: Karaaguê para o Karaaguê 2.0), para os relatórios não separarem.</div>` +
+    espRascunho.itens.map((m, idx) => `
+    <div class="esp-item ${m.status}">
+      <div class="field-row alinhar-base">
+        <div class="field" style="flex:2 1 150px;"><label>Nas comandas</label><input type="text" data-esp="chave" data-idx="${idx}" value="${escapeHtml(m.chave)}" placeholder="Ex: Karaaguê"></div>
+        <div class="field" style="flex:1 1 90px;"><label>Preço</label><input type="number" data-esp="preco" data-idx="${idx}" value="${m.preco || ''}" min="0" step="0.5"></div>
+        <button class="del-btn" type="button" data-esp-acao="del" data-idx="${idx}" title="Tirar do cardápio do evento">✕</button>
+      </div>
+      <div class="field-row">
+        <div class="field" style="flex:2 1 150px;"><label>Nome no site</label><input type="text" data-esp="nome" data-idx="${idx}" value="${escapeHtml(m.nome)}" placeholder="Ex: Karaaguê 2.0"></div>
+        <div class="field" style="flex:1 1 60px;"><label>Tamanho</label><input type="text" data-esp="tamanho" data-idx="${idx}" value="${escapeHtml(m.tamanho)}"></div>
+        <div class="field" style="flex:1 1 110px;"><label>Categoria</label><input type="text" list="categoriasList" data-esp="categoria" data-idx="${idx}" value="${escapeHtml(m.categoria)}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Descrição <span class="label-opcional">(opcional)</span></label><input type="text" data-esp="descricao" data-idx="${idx}" value="${escapeHtml(m.descricao)}"></div>
+      </div>
+      <div class="field-row alinhar-base">
+        <div class="field" style="flex:1 1 130px;"><label>Situação</label><select data-esp="status" data-idx="${idx}">${STATUS_MENU.map(([v, t]) => `<option value="${v}"${m.status === v ? ' selected' : ''}>${t}</option>`).join('')}</select></div>
+        <div class="field" style="flex:2 1 200px;"><span class="menu-check-titulo">Contém:</span>
+          ${ALERGENICOS.map(([campo, txt]) => `<label class="menu-check"><input type="checkbox" data-esp="${campo}" data-idx="${idx}"${m[campo] ? ' checked' : ''}> ${txt}</label>`).join('')}</div>
+      </div>
+    </div>`).join('');
+}
+async function abrirCardapioEspecial(nome){
+  const msg = document.getElementById('espMsg');
+  if (msg) { msg.textContent = ''; msg.className = 'save-msg'; }
+  if (nome === '__novo') {
+    espRascunho = null;
+    document.getElementById('espNome').value = '';
+    document.getElementById('espPct').value = '';
+    renderMenuEspeciais();
+    document.getElementById('espSel').value = '__novo';
+    document.getElementById('espNovo').style.display = 'block';
+    return;
+  }
+  const c = acharCardapioEspecial(nome);
+  espRascunho = c ? { nome: c.nome, itens: (c.itens || []).map(itemEspecial) } : null;
+  renderMenuEspeciais();
+}
+function montarCardapioDoPadrao(){
+  const nome = document.getElementById('espNome').value.trim();
+  const msg = document.getElementById('espMsg');
+  if (!nome) { alertaEsp('Dê um nome ao cardápio (ex.: Bombeiros).'); return; }
+  if (acharCardapioEspecial(nome)) { alertaEsp(`Já existe o cardápio "${nome}". Escolha ele na lista para editar.`); return; }
+  if (!menuVeioDaPlanilha) { alertaEsp('Ainda não consegui ler o cardápio padrão da planilha. Confira a internet e abra esta tela de novo.'); return; }
+  const pct = parseFloat(document.getElementById('espPct').value) || 0;
+  const arred = document.getElementById('espArred').checked;
+  const itens = MENU_REFERENCIA.filter(m => m.nome && m.status !== 'oculto').map(m => itemEspecial({
+    chave: nomePadrao(m.chave), nome: m.nome, tamanho: m.tamanho, categoria: m.categoria, descricao: m.descricao,
+    foto: m.foto, preco: precoComAcrescimo(m.preco || m.max, pct, arred), status: m.status,
+    contem_ovo: m.contem_ovo, contem_leite: m.contem_leite, contem_carne: m.contem_carne
+  }));
+  espRascunho = { nome, novo: true, itens };
+  document.getElementById('espEditor').style.display = 'block';
+  desenharEspRows();
+  if (msg) { msg.textContent = `Montado com ${itens.length} itens${pct ? ' e ' + pct + '% de acréscimo' : ''}. Confira e toque em "Salvar cardápio do evento".`; msg.className = 'save-msg'; }
+}
+function alertaEsp(texto){
+  const msg = document.getElementById('espMsg');
+  document.getElementById('espEditor').style.display = 'block';
+  if (!espRascunho) document.getElementById('espRows').innerHTML = '';
+  msg.textContent = texto; msg.className = 'save-msg erro';
+}
+async function salvarCardapioEspecialApp(){
+  const msg = document.getElementById('espMsg');
+  const mostrar = (t, cls) => { msg.textContent = t; msg.className = 'save-msg' + (cls ? ' ' + cls : ''); };
+  if (!espRascunho) return;
+  const itens = espRascunho.itens.map(i => ({ ...i, chave: i.chave.trim(), nome: i.nome.trim() }));
+  const semNome = itens.findIndex(i => !i.chave);
+  if (!itens.length) { mostrar('O cardápio está sem itens.', 'erro'); return; }
+  if (semNome >= 0) { mostrar(`O item ${semNome + 1} está sem o nome "Nas comandas".`, 'erro'); return; }
+  const semPreco = itens.find(i => !(i.preco > 0));
+  if (semPreco) { mostrar(`"${semPreco.chave}" está sem preço.`, 'erro'); return; }
+  if ((infoServidor.versao || 0) < 11) { mostrar('Para salvar, publique antes o Apps Script v11 na planilha.', 'erro'); return; }
+  mostrar('Salvando na planilha…', '');
+  try {
+    const res = await fetchServidor(webhookUrl, { method: 'POST', body: JSON.stringify({ action: 'salvarCardapioEspecial', nome: espRascunho.nome, itens, sessao: sessaoAtual && sessaoAtual.sessao }) });
+    const j = await res.json();
+    if (!j || !j.ok) throw new Error((j && j.erro) || 'resposta inesperada');
+    espRascunho.novo = false;
+    await carregarCardapiosEspeciais();
+    const salvo = acharCardapioEspecial(espRascunho.nome);
+    if (salvo) espRascunho = { nome: salvo.nome, itens: (salvo.itens || []).map(itemEspecial) };
+    renderMenuEspeciais();
+    atualizarCardapioDoEvento();
+    mostrar(`✓ Cardápio "${espRascunho.nome}" salvo (${j.itens} itens). Agora ligue ele ao evento na 📅 Agenda.`, 'ok');
+  } catch(err){
+    mostrar('Não consegui salvar na planilha (' + (err.message || 'sem conexão') + '). Nada foi gravado; tente de novo.', 'erro');
+  }
+}
+document.getElementById('espSel').addEventListener('change', e => abrirCardapioEspecial(e.target.value));
+// Ponto fixo (Toda semana) usa o cardápio padrão: desmarca "Evento especial".
+document.getElementById('agRepetir').addEventListener('change', e => {
+  if (e.target.checked) { document.getElementById('agEspecial').checked = false; document.getElementById('agCardapio').value = ''; }
+});
+document.getElementById('espMontarBtn').addEventListener('click', montarCardapioDoPadrao);
+document.getElementById('espSalvarBtn').addEventListener('click', salvarCardapioEspecialApp);
+document.getElementById('espAddBtn').addEventListener('click', () => {
+  if (!espRascunho) return;
+  espRascunho.itens.push(itemEspecial({ categoria: 'Pratos' }));
+  desenharEspRows();
+});
+document.getElementById('espAplicarBtn').addEventListener('click', () => {
+  if (!espRascunho) return;
+  const pct = parseFloat(document.getElementById('espPctAplicar').value) || 0;
+  if (!pct) return;
+  const arred = document.getElementById('espArred').checked;
+  espRascunho.itens.forEach(i => { i.preco = precoComAcrescimo(i.preco, pct, arred); });
+  document.getElementById('espPctAplicar').value = '';
+  desenharEspRows();
+});
+document.getElementById('espRows').addEventListener('input', e => {
+  const t = e.target, idx = t.getAttribute('data-idx'), campo = t.getAttribute('data-esp');
+  if (!espRascunho || idx === null || !campo) return;
+  espRascunho.itens[idx][campo] = t.type === 'checkbox' ? t.checked : campo === 'preco' ? (parseFloat(t.value) || 0) : t.value;
+  if (campo === 'status') t.closest('.esp-item').className = 'esp-item ' + t.value;
+});
+document.getElementById('espRows').addEventListener('change', e => {
+  const t = e.target;
+  if (t.tagName === 'SELECT' && espRascunho) { espRascunho.itens[t.getAttribute('data-idx')].status = t.value; t.closest('.esp-item').className = 'esp-item ' + t.value; }
+});
+document.getElementById('espRows').addEventListener('click', e => {
+  const b = e.target.closest('[data-esp-acao="del"]');
+  if (!b || !espRascunho) return;
+  espRascunho.itens.splice(Number(b.dataset.idx), 1);
+  desenharEspRows();
+});
 function renderMenuEditor(){
+  renderMenuEspeciais();
+  carregarCardapiosEspeciais().then(renderMenuEspeciais);
   menuRascunho = MENU_REFERENCIA.map(itemMenu);
   menuAbertos = new Set();
   desenharMenuRows();
@@ -3786,7 +4111,8 @@ function agendaCampos(){
     local: document.getElementById('agLocal'), evento: document.getElementById('agEvento'),
     endereco: document.getElementById('agEndereco'), inicio: document.getElementById('agInicio'),
     fim: document.getElementById('agFim'), status: document.getElementById('agStatus'),
-    aviso: document.getElementById('agAviso'), mostrar: document.getElementById('agMostrar')
+    aviso: document.getElementById('agAviso'), mostrar: document.getElementById('agMostrar'),
+    especial: document.getElementById('agEspecial'), cardapio: document.getElementById('agCardapio')
   };
 }
 
@@ -3796,7 +4122,8 @@ function lerFormAgenda(){
     id: agendaEditando || '', data: c.data.value, repetir: c.repetir.checked,
     local: c.local.value.trim(), evento: c.evento.value.trim(), endereco: c.endereco.value.trim(),
     inicio: c.inicio.value, fim: c.fim.value, status: c.status.value,
-    aviso: c.aviso.value.trim(), mostrar: c.mostrar.checked, frase: agendaFraseUsada
+    aviso: c.aviso.value.trim(), mostrar: c.mostrar.checked, frase: agendaFraseUsada,
+    especial: c.especial.checked || !!c.cardapio.value.trim(), cardapio: c.cardapio.value.trim()
   };
 }
 
@@ -3812,6 +4139,8 @@ function preencherFormAgenda(ev){
   c.status.value = ev.status === 'Cancelado' ? 'Cancelado' : 'Confirmado';
   c.aviso.value = ev.aviso || '';
   c.mostrar.checked = ev.mostrar !== false;
+  c.especial.checked = !!ev.especial;
+  c.cardapio.value = ev.cardapio || '';
   agendaAvisosVistos = '';
   atualizarBotaoSalvarAgenda('');
 }
@@ -3819,7 +4148,7 @@ function preencherFormAgenda(ev){
 function limparFormAgenda(){
   agendaEditando = null;
   agendaFraseUsada = '';
-  preencherFormAgenda({ data: '', mostrar: true, status: 'Confirmado' });
+  preencherFormAgenda({ data: '', mostrar: true, status: 'Confirmado', especial: true });
   document.getElementById('agEditando').style.display = 'none';
   document.getElementById('agAvisos').innerHTML = '';
   document.getElementById('agFrase').value = '';
@@ -3848,6 +4177,15 @@ async function conferirEventoAgenda(ev){
     if (!igual && conhecidos.length) {
       avisos.push(`"${escapeHtml(ev.local)}" é um <b>local novo</b>. Confira se vai ser escrito assim também no lançamento das comandas, para os relatórios baterem.`);
     }
+  }
+  if (ev.cardapio && CARDAPIOS_ESPECIAIS.length && !acharCardapioEspecial(ev.cardapio)) {
+    avisos.push(`Não achei o cardápio "${escapeHtml(ev.cardapio)}" na aba Cardápios especiais. Os que existem: ${CARDAPIOS_ESPECIAIS.map(c => escapeHtml(c.nome)).join(', ')}.`);
+  }
+  if (ev.status === 'Confirmado' && !ev.repetir && !ev.cardapio && (infoServidor.versao || 0) >= 11) {
+    avisos.push('Evento fora dos pontos fixos <b>sem cardápio do evento</b>: o site e o app vão usar o cardápio padrão. Se os preços ou os produtos mudam, crie o cardápio em 🍜 Cardápio → ⭐ Cardápios de evento e escolha aqui.');
+  }
+  if ((ev.especial || ev.cardapio) && (infoServidor.versao || 0) < 11) {
+    avisos.push('Evento especial e cardápio especial só ficam guardados depois de publicar o Apps Script v11.');
   }
   if (!agendaEditando && ev.status === 'Cancelado' && ev.repetir) {
     avisos.push('Cancelado com "Toda semana" não muda nada. Para tirar um dia só, desmarque "Toda semana". Para encerrar um ponto fixo, use ✏️ Editar na linha dele, lá embaixo.');
@@ -3945,6 +4283,7 @@ function renderAgendaListas(){
   const tags = (ev, fixo, cancelado) => [
     cancelado ? '<span class="agenda-tag canc">cancelado</span>' : '',
     fixo ? '<span class="agenda-tag fixo">🔁 fixo</span>' : '',
+    ev.especial ? `<span class="agenda-tag site">⭐ especial${ev.cardapio ? ' · ' + escapeHtml(ev.cardapio) : ''}</span>` : '',
     cancelado ? '' : (ev.mostrar ? '<span class="agenda-tag site">🌐 no site</span>' : '<span class="agenda-tag">🔒 só interno</span>')
   ].join('');
   const horario = ev => ev.inicio ? ` · ${ev.inicio}${ev.fim ? '–' + ev.fim : ''}` : '';
@@ -3985,6 +4324,7 @@ function renderAgendaListas(){
 async function atualizarLocaisAgenda(){
   const l = await locaisConhecidos();
   document.getElementById('agLocaisList').innerHTML = l.map(x => `<option value="${escapeHtml(x.local)}"></option>`).join('');
+  document.getElementById('agCardapiosList').innerHTML = CARDAPIOS_ESPECIAIS.map(c => `<option value="${escapeHtml(c.nome)}"></option>`).join('');
 }
 
 // Local conhecido digitado: usa a grafia já usada e traz o endereço que a agenda tem.
@@ -4010,6 +4350,9 @@ async function loadAgenda(){
     return;
   }
   aviso.style.display = 'none';
+  carregarCardapiosEspeciais().then(() => {
+    document.getElementById('agCardapiosList').innerHTML = CARDAPIOS_ESPECIAIS.map(c => `<option value="${escapeHtml(c.nome)}"></option>`).join('');
+  });
   try {
     await carregarEventos(true);
     renderAgendaListas();
@@ -4180,6 +4523,16 @@ async function sugerirLocalDaAgenda(){
   box.style.display = 'flex';
 }
 eventoData.addEventListener('change', sugerirLocalDaAgenda);
+// v14: data ou local mudou → volta a escolher o cardápio pela agenda.
+eventoData.addEventListener('change', () => { cardapioLancamentoManual = false; atualizarCardapioDoEvento(); });
+eventoLocal.addEventListener('change', () => { cardapioLancamentoManual = false; atualizarCardapioDoEvento(); });
+eventoLocal.addEventListener('input', () => { if (!cardapioLancamentoManual) atualizarCardapioDoEvento(); });
+document.getElementById('cardapioEventoSel').addEventListener('change', e => {
+  cardapioLancamentoManual = true;
+  cardapioLancamento = acharCardapioEspecial(e.target.value);
+  atualizarCardapioDoEvento();
+  renderComandas();
+});
 eventoLocal.addEventListener('input', () => {
   const box = document.getElementById('agendaSugestao');
   if (box && box.style.display !== 'none' && chaveLocal(eventoLocal.value)) {
