@@ -404,8 +404,7 @@
   .menu-especial{border:2px solid var(--ink);border-radius:10px;background:#fffdf6;padding:10px 12px;margin-top:10px;font-family:'Poppins',sans-serif;font-size:13px;}
   .menu-especial b{font-family:'Titan One',cursive;font-weight:400;font-size:15px;}
   .menu-especial ul{margin:6px 0 0;padding-left:18px;}
-  .esp-item{border:2px solid var(--ink);border-radius:10px;background:#fff;padding:10px;margin-top:10px;}
-  .esp-item.oculto{opacity:.55;}
+  .esp-item{margin-top:10px;}
   .esp-item .field-row{margin-top:6px;}
   .esp-item .field-row:first-child{margin-top:0;}
   .agenda-sugestao{margin-top:10px;font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
@@ -2588,37 +2587,60 @@ function renderMenuEspeciais(){
   document.getElementById('espEditor').style.display = espRascunho ? 'block' : 'none';
   desenharEspRows();
 }
+let espAbertos = new Set(); // itens com "🌐 Site" aberto na tela do menu de evento
 function desenharEspRows(){
   const wrap = document.getElementById('espRows');
   if (!wrap) return;
   if (!espRascunho) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = `<div class="evento-hint" style="margin-top:10px;"><b>${escapeHtml(espRascunho.nome)}</b>: ${espRascunho.itens.length} itens. "Nas comandas" é o nome que vai para a planilha de vendas: use o nome de sempre do produto (ex.: Karaaguê para o Karaaguê 2.0), para os relatórios não separarem.</div>` +
-    espRascunho.itens.map((m, idx) => `
-    <div class="esp-item ${m.status}">
-      <div class="field-row alinhar-base">
-        <div class="field" style="flex:2 1 150px;"><label>Nas comandas</label><input type="text" data-esp="chave" data-idx="${idx}" value="${escapeHtml(m.chave)}" placeholder="Ex: Karaaguê"></div>
-        <div class="field" style="flex:1 1 90px;"><label>Preço</label><input type="number" data-esp="preco" data-idx="${idx}" value="${m.preco || ''}" min="0" step="0.5"></div>
+    espRascunho.itens.map((m, idx) => {
+      // Mesma cara do 🍜 Editar menu: linha com nome e preço, botões de
+      // situação e o bloco 🌐 Site com o resto.
+      const resumoSite = m.nome
+        ? `${escapeHtml(m.nome)}${m.tamanho ? ' ' + escapeHtml(m.tamanho) : ''}${seloAlergenicos(m)}${m.foto ? ' · 📷' : ''}${m.exclusivo ? ' · ⭐ só no evento' : ''}`
+        : 'sem nome no site — não aparece lá';
+      return `
+    <div class="menu-item esp-item ${m.status}" data-idx="${idx}">
+      <div class="menu-item-row">
+        <div class="field">
+          <input type="text" data-esp="chave" data-idx="${idx}" value="${escapeHtml(m.chave)}" placeholder="Nas comandas (ex: Karaaguê)" aria-label="Nome nas comandas" title="Nome nas comandas">
+        </div>
+        <div class="field field-price">
+          <input type="number" data-esp="preco" data-idx="${idx}" value="${m.preco || ''}" min="0" step="0.5" placeholder="R$" aria-label="Preço" title="Preço no evento">
+        </div>
         <button class="del-btn" type="button" data-esp-acao="del" data-idx="${idx}" title="Tirar do cardápio do evento">✕</button>
       </div>
-      <div class="field-row">
-        <div class="field" style="flex:2 1 150px;"><label>Nome no site</label><input type="text" data-esp="nome" data-idx="${idx}" value="${escapeHtml(m.nome)}" placeholder="Ex: Karaaguê 2.0"></div>
-        <div class="field" style="flex:1 1 60px;"><label>Tamanho</label><input type="text" data-esp="tamanho" data-idx="${idx}" value="${escapeHtml(m.tamanho)}"></div>
-        <div class="field" style="flex:1 1 110px;"><label>Categoria</label><input type="text" list="categoriasList" data-esp="categoria" data-idx="${idx}" value="${escapeHtml(m.categoria)}"></div>
+      <div class="status-seg">
+        ${STATUS_MENU.map(([v, txt]) => `<button type="button" class="s-${v}${m.status === v ? ' on' : ''}" data-esp-acao="status" data-status="${v}" data-idx="${idx}" aria-pressed="${m.status === v}">${txt}</button>`).join('')}
       </div>
-      <div class="field-row">
-        <div class="field"><label>Descrição <span class="label-opcional">(opcional)</span></label><input type="text" data-esp="descricao" data-idx="${idx}" value="${escapeHtml(m.descricao)}"></div>
-      </div>
-      <div class="field-row alinhar-base">
-        <div class="field" style="flex:1 1 130px;"><label>Situação</label><select data-esp="status" data-idx="${idx}">${STATUS_MENU.map(([v, t]) => `<option value="${v}"${m.status === v ? ' selected' : ''}>${t}</option>`).join('')}</select></div>
-        <div class="field" style="flex:2 1 200px;"><span class="menu-check-titulo">Contém:</span>
-          ${ALERGENICOS.map(([campo, txt]) => `<label class="menu-check"><input type="checkbox" data-esp="${campo}" data-idx="${idx}"${m[campo] ? ' checked' : ''}> ${txt}</label>`).join('')}</div>
-      </div>
-      <div class="field-row">
-        <label class="menu-check"><input type="checkbox" data-esp="exclusivo" data-idx="${idx}"${m.exclusivo ? ' checked' : ''}> ⭐ Só no evento <span class="label-opcional">(destaque no site)</span></label>
-      </div>
-    </div>`).join('');
+      <details class="menu-site esp-site" data-idx="${idx}"${espAbertos.has(idx) ? ' open' : ''}>
+        <summary>🌐 Site: ${resumoSite}</summary>
+        <div class="field-row">
+          <div class="field" style="flex:3 1 160px;"><label>Nome no site</label><input type="text" data-esp="nome" data-idx="${idx}" value="${escapeHtml(m.nome)}" placeholder="Ex: Karaaguê 2.0"></div>
+          <div class="field" style="flex:1 1 70px;"><label>Tamanho</label><input type="text" data-esp="tamanho" data-idx="${idx}" value="${escapeHtml(m.tamanho)}" placeholder="P, G…"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Categoria</label><input type="text" list="categoriasList" data-esp="categoria" data-idx="${idx}" value="${escapeHtml(m.categoria)}" placeholder="Pratos, Petiscos, Bebidas…"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Descrição <span class="label-opcional">(opcional)</span></label><input type="text" data-esp="descricao" data-idx="${idx}" value="${escapeHtml(m.descricao)}" placeholder="Uma frase curta"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Foto <span class="label-opcional">(nome do arquivo na pasta fotos do site)</span></label><input type="text" data-esp="foto" data-idx="${idx}" value="${escapeHtml(m.foto)}" placeholder="Ex: yakissoba.jpg"></div>
+        </div>
+        <div class="field-row">
+          <span class="menu-check-titulo">Contém:</span>
+          ${ALERGENICOS.map(([campo, txt]) => `<label class="menu-check"><input type="checkbox" data-esp="${campo}" data-idx="${idx}"${m[campo] ? ' checked' : ''}> ${txt}</label>`).join('')}
+        </div>
+        <div class="field-row">
+          <label class="menu-check"><input type="checkbox" data-esp="exclusivo" data-idx="${idx}"${m.exclusivo ? ' checked' : ''}> ⭐ Só no evento <span class="label-opcional">(destaque no site)</span></label>
+        </div>
+      </details>
+    </div>`;
+    }).join('');
 }
 async function abrirCardapioEspecial(nome){
+  espAbertos = new Set();
   const msg = document.getElementById('espMsg');
   if (msg) { msg.textContent = ''; msg.className = 'save-msg'; }
   if (nome === '__novo') {
@@ -2696,6 +2718,7 @@ document.getElementById('espAddBtn').addEventListener('click', () => {
   if (!espRascunho) return;
   // produto novo no cardápio do evento costuma ser exclusivo dele (ex.: Combo ODD)
   espRascunho.itens.push(itemEspecial({ categoria: 'Pratos', exclusivo: true }));
+  espAbertos.add(espRascunho.itens.length - 1);
   desenharEspRows();
 });
 document.getElementById('espAplicarBtn').addEventListener('click', () => {
@@ -2711,16 +2734,27 @@ document.getElementById('espRows').addEventListener('input', e => {
   const t = e.target, idx = t.getAttribute('data-idx'), campo = t.getAttribute('data-esp');
   if (!espRascunho || idx === null || !campo) return;
   espRascunho.itens[idx][campo] = t.type === 'checkbox' ? t.checked : campo === 'preco' ? (parseFloat(t.value) || 0) : t.value;
-  if (campo === 'status') t.closest('.esp-item').className = 'esp-item ' + t.value;
 });
-document.getElementById('espRows').addEventListener('change', e => {
-  const t = e.target;
-  if (t.tagName === 'SELECT' && espRascunho) { espRascunho.itens[t.getAttribute('data-idx')].status = t.value; t.closest('.esp-item').className = 'esp-item ' + t.value; }
-});
+document.getElementById('espRows').addEventListener('toggle', e => {
+  const d = e.target;
+  if (!d.classList || !d.classList.contains('esp-site')) return;
+  const idx = Number(d.getAttribute('data-idx'));
+  if (d.open) espAbertos.add(idx); else espAbertos.delete(idx);
+}, true);
 document.getElementById('espRows').addEventListener('click', e => {
+  if (!espRascunho) return;
+  // Situação: só marca; vale depois de "Salvar cardápio do evento".
+  const st = e.target.closest('[data-esp-acao="status"]');
+  if (st) {
+    espRascunho.itens[Number(st.dataset.idx)].status = st.dataset.status;
+    desenharEspRows();
+    return;
+  }
   const b = e.target.closest('[data-esp-acao="del"]');
-  if (!b || !espRascunho) return;
-  espRascunho.itens.splice(Number(b.dataset.idx), 1);
+  if (!b) return;
+  const idx = Number(b.dataset.idx);
+  espRascunho.itens.splice(idx, 1);
+  espAbertos = new Set([...espAbertos].filter(i => i !== idx).map(i => i > idx ? i - 1 : i));
   desenharEspRows();
 });
 // v15: os cardápios de evento ficam numa tela própria (⭐ Editar menu de evento),
