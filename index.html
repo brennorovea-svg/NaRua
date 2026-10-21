@@ -277,8 +277,7 @@
   .menu-item-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
   .menu-item-row .field{flex:1;}
   .menu-item-row .field-price{flex:0 0 110px;}
-  .preco-sugerido{flex:0 0 auto;background:var(--green);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;padding:6px 9px;border-radius:8px;cursor:pointer;white-space:nowrap;border:none;}
-  .preco-sugerido:hover{filter:brightness(1.08);}
+  .preco-sugerido{flex:0 0 auto;align-self:center;background:#e9f6ee;color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;padding:6px 9px;border-radius:8px;white-space:nowrap;border:1px dashed var(--green);}
   .repasse-box{background:#fdf6e6;border:2px dashed var(--orange);border-radius:10px;padding:12px 14px;margin-top:4px;}
   .repasse-box label{margin:0 0 6px;}
   .repasse-box input{max-width:140px;}
@@ -586,12 +585,12 @@
   <div id="viewMenu" style="display:none;">
     <div class="step-label">Cardápio</div>
     <div class="card">
-      <div class="evento-hint">O <b>preço máximo</b> é interno: serve só pra sinalizar quando uma leitura de foto parece errada. O que fica em <b>🌐 Site</b> (nome, preços de balcão e iFood, foto e as caixinhas 🥚 ovo, 🥛 leite, 🍖 carne) e o status aparecem no <b>site do cardápio</b>. Item sem nome no site ou marcado como Oculto não aparece lá.</div>
+      <div class="evento-hint">O <b>preço</b> de cada item é o que aparece no <b>site do cardápio</b> e também a referência do app: se uma leitura de comanda vier muito fora dele (ex.: um yakissoba de R$ 4.000), o app avisa. Em <b>🌐 Site</b> ficam nome, tamanho, categoria, descrição, preço iFood, foto e as caixinhas 🥚 ovo, 🥛 leite, 🍖 carne. Item sem nome no site ou marcado como Oculto não aparece lá.</div>
 
       <div class="repasse-box">
-        <label>Simular repasse de taxa (%)</label>
+        <label>Preço estimado com a % do organizador do evento</label>
         <input type="number" id="repasseInput" min="0" step="0.5" placeholder="Ex: 5">
-        <p class="repasse-hint">Informe a % da taxa que é descontada da venda (maquininha, marketplace, etc). O app calcula o preço que, depois de descontada essa taxa, ainda deixa o valor atual pra você — não é uma soma simples de %. Toque no preço sugerido pra aplicá-lo naquele item.</p>
+        <p class="repasse-hint">Informe a % que o organizador do evento fica da venda. O app mostra, ao lado de cada item, o preço estimado que, depois de descontada essa %, ainda deixa o preço atual pra você (não é uma soma simples de %). É só uma simulação: não muda o cardápio. Para cobrar esse preço num evento, crie o menu em ⭐ Editar menu de evento.</p>
         <div id="repasseErro" class="repasse-erro" style="display:none;"></div>
       </div>
 
@@ -1623,7 +1622,7 @@ async function analyzeImagesBatch(imagens){
 
   const menuLeitura = menuDoLancamento();
   const menuTexto = menuLeitura.length
-    ? menuLeitura.map(m => `- ${m.chave}: até R$ ${m.max.toFixed(2)} por unidade`).join('\n')
+    ? menuLeitura.map(m => `- ${m.chave}: preço de referência R$ ${m.max.toFixed(2)} por unidade`).join('\n')
     : '(nenhum item cadastrado)';
 
   const pedido = {
@@ -2480,10 +2479,12 @@ async function loadHistory(){
 }
 
 // ---------- Cardápio (aba Menu da planilha) ----------
-// Cada item tem a parte interna (chave e preço máximo, usados nos alertas da
-// leitura) e a parte do site do cardápio (nome, tamanho, categoria, descrição,
-// preço balcão, preço iFood, foto e status). A partir do Apps Script v4 tudo
-// isso fica na aba Menu.
+// Cada item tem a chave interna (nome usado nas comandas), o preço e a parte
+// do site do cardápio (nome, tamanho, categoria, descrição, preço iFood, foto e
+// status). Desde o v16 não existe mais "preço máximo" separado: o preço do
+// item (coluna Preço Balcão) é a referência dos alertas de leitura e do preço
+// automático. O campo max continua só como espelho do preço, porque a coluna
+// "Preço Máximo" da aba Menu ainda é lida pelo Apps Script e por apps antigos.
 const STATUS_MENU = [
   ['disponivel', 'Disponível'],
   ['esgotado', 'Esgotado'],
@@ -2505,14 +2506,16 @@ function seloAlergenicos(m){
 function itemMenu(i){
   i = i || {};
   const status = ['disponivel', 'esgotado', 'oculto'].includes(i.status) ? i.status : 'disponivel';
+  // Item antigo sem preço balcão: usa o antigo preço máximo como preço.
+  const preco = Number(i.preco) || Number(i.max) || 0;
   return {
     chave: normalizarTexto(i.chave),
-    max: Number(i.max) || 0,
+    max: preco,
     nome: String(i.nome || '').trim(),
     tamanho: String(i.tamanho || '').trim(),
     categoria: String(i.categoria || '').trim(),
     descricao: String(i.descricao || '').trim(),
-    preco: Number(i.preco) || 0,
+    preco,
     preco_ifood: Number(i.preco_ifood) || 0,
     foto: String(i.foto || '').trim(),
     status,
@@ -2767,9 +2770,9 @@ function desenharMenuRows(){
     // descontada do valor cobrado, sobre exatamente o preço atual pra você.
     // Não é uma simples soma de %: 25 × 1,10 = 27,50, mas 27,50 × 0,90 = 24,75 (menos que 25!).
     // A conta certa é 25 ÷ 0,90 = 27,78, que aí sim volta pros 25 depois do desconto.
-    const sugestao = (pct > 0 && pct < 100) ? m.max / (1 - pct / 100) : null;
+    const sugestao = (pct > 0 && pct < 100 && m.preco > 0) ? m.preco / (1 - pct / 100) : null;
     const resumoSite = m.nome
-      ? `${escapeHtml(m.nome)}${m.tamanho ? ' ' + escapeHtml(m.tamanho) : ''}${m.preco ? ' · ' + formatBRL(m.preco) : ''}${seloAlergenicos(m)}${m.foto ? ' · 📷' : ''}`
+      ? `${escapeHtml(m.nome)}${m.tamanho ? ' ' + escapeHtml(m.tamanho) : ''}${seloAlergenicos(m)}${m.foto ? ' · 📷' : ''}`
       : 'sem nome no site — não aparece lá';
     return `
     <div class="menu-item ${m.status}" data-idx="${idx}">
@@ -2778,9 +2781,9 @@ function desenharMenuRows(){
           <input type="text" data-menu-field="chave" data-idx="${idx}" value="${escapeHtml(m.chave)}" placeholder="Item (ex: yakissoba p)" aria-label="Item">
         </div>
         <div class="field field-price">
-          <input type="number" data-menu-field="max" data-idx="${idx}" value="${m.max}" min="0" step="0.5" aria-label="Preço máximo" title="Preço máximo (interno)">
+          <input type="number" data-menu-field="preco" data-idx="${idx}" value="${m.preco || ''}" min="0" step="0.5" placeholder="R$" aria-label="Preço" title="Preço (site e referência da leitura)">
         </div>
-        ${sugestao !== null ? `<button type="button" class="preco-sugerido" data-action="usar-sugestao" data-idx="${idx}" data-valor="${sugestao.toFixed(2)}" title="Tocar para usar esse preço">→ ${formatBRL(sugestao)}</button>` : ''}
+        ${sugestao !== null ? `<span class="preco-sugerido" title="Preço estimado com ${pct}% do organizador (só simulação)">≈ ${formatBRL(sugestao)}</span>` : ''}
         <button class="del-btn" data-action="del-menu-item" data-idx="${idx}" title="Remover item">✕</button>
       </div>
       <div class="status-seg">
@@ -2799,7 +2802,6 @@ function desenharMenuRows(){
           <div class="field"><label>Descrição <span class="label-opcional">(opcional)</span></label><input type="text" data-menu-field="descricao" data-idx="${idx}" value="${escapeHtml(m.descricao)}" placeholder="Uma frase curta"></div>
         </div>
         <div class="field-row">
-          <div class="field" style="flex:1 1 110px;"><label>Preço balcão</label><input type="number" data-menu-field="preco" data-idx="${idx}" value="${m.preco || ''}" min="0" step="0.5"></div>
           <div class="field" style="flex:1 1 110px;"><label>Preço iFood</label><input type="number" data-menu-field="preco_ifood" data-idx="${idx}" value="${m.preco_ifood || ''}" min="0" step="0.5"></div>
         </div>
         <div class="field-row">
@@ -2822,6 +2824,12 @@ document.getElementById('menuRows').addEventListener('input', e => {
   if (idx === null || !field) return;
   menuRascunho[idx][field] = t.type === 'checkbox' ? t.checked
     : CAMPOS_NUMERICOS_MENU.includes(field) ? (parseFloat(t.value) || 0) : t.value;
+  if (field === 'preco') {
+    menuRascunho[idx].max = menuRascunho[idx].preco;
+    const est = t.closest('.menu-item-row').querySelector('.preco-sugerido');
+    const pct = menuRepassePercent || 0;
+    if (est && pct > 0 && pct < 100) est.textContent = '≈ ' + formatBRL(menuRascunho[idx].preco / (1 - pct / 100));
+  }
 });
 document.getElementById('menuRows').addEventListener('toggle', e => {
   const d = e.target;
@@ -2830,14 +2838,6 @@ document.getElementById('menuRows').addEventListener('toggle', e => {
   if (d.open) menuAbertos.add(idx); else menuAbertos.delete(idx);
 }, true);
 document.getElementById('menuRows').addEventListener('click', e => {
-  const usarBtn = e.target.closest('[data-action="usar-sugestao"]');
-  if (usarBtn) {
-    const idx = Number(usarBtn.getAttribute('data-idx'));
-    const valor = parseFloat(usarBtn.getAttribute('data-valor')) || 0;
-    menuRascunho[idx].max = valor;
-    desenharMenuRows();
-    return;
-  }
   // Trocar o status (ex.: esgotou) já salva na planilha, pra valer no site na hora.
   const statusBtn = e.target.closest('[data-action="status"]');
   if (statusBtn) {
