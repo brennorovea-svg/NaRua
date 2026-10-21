@@ -2607,7 +2607,7 @@ function desenharEspRows(){
       // Mesma cara do 🍜 Editar menu: linha com nome e preço, botões de
       // situação e o bloco 🌐 Site com o resto.
       const resumoSite = m.nome
-        ? `${escapeHtml(m.nome)}${m.tamanho ? ' ' + escapeHtml(m.tamanho) : ''}${seloAlergenicos(m)}${m.foto ? ' · 📷' : ''}${m.exclusivo ? ' · ⭐ só no evento' : ''}`
+        ? `${escapeHtml(m.nome)}${m.tamanho ? ' ' + escapeHtml(m.tamanho) : ''}${seloAlergenicos(m)}${m.foto ? ' · 📷' : fotoHerdada(m) ? ' · 📷↩' : ''}${m.exclusivo ? ' · ⭐ só no evento' : ''}`
         : 'sem nome no site — não aparece lá';
       return `
     <div class="menu-item esp-item ${m.status}" data-idx="${idx}">
@@ -2796,23 +2796,35 @@ function srcFotoApp(valor){
   if (/^[\w./ -]+$/.test(v) && !v.includes('..')) return SITE_FOTOS + v.replace(/^\/+/, '');
   return '';
 }
+// v19: item de evento sem foto própria usa no site a foto do mesmo item do
+// menu padrão (Apps Script v16), achado pelo Item das comandas e, se não
+// achar, pelo Nome no site. Aqui só mostramos; nada é gravado no item.
+function normFoto(t){ return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+function fotoHerdada(m){
+  if (!m || m.foto) return '';
+  const k = normFoto(m.chave), n = normFoto(m.nome);
+  const comFoto = (MENU_REFERENCIA || []).filter(p => p.foto);
+  const achado = (k && comFoto.find(p => normFoto(p.chave) === k)) || (n && comFoto.find(p => normFoto(p.nome) === n));
+  return achado ? achado.foto : '';
+}
 function campoFoto(m, idx, alvo){
   const attr = alvo === 'esp' ? 'data-esp="foto"' : 'data-menu-field="foto"';
-  const src = srcFotoApp(m.foto);
+  const herdada = alvo === 'esp' ? fotoHerdada(m) : '';
+  const src = srcFotoApp(m.foto || herdada);
   const mini = src
     ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" onerror="this.parentNode.textContent='📷'">`
     : '📷';
   const v = (infoServidor && infoServidor.versao) || 0;
   const botao = podeEnviarFoto()
-    ? `<button type="button" class="foto-btn" data-foto-alvo="${alvo}" data-idx="${idx}">📷 ${m.foto ? 'Trocar foto' : 'Enviar foto'}</button>`
+    ? `<button type="button" class="foto-btn" data-foto-alvo="${alvo}" data-idx="${idx}">📷 ${m.foto || herdada ? 'Trocar foto' : 'Enviar foto'}</button>`
     : (v >= 15 ? '<div class="foto-msg">Para enviar foto pelo app, falta cadastrar o token do GitHub no Apps Script.</div>' : '');
   return `
         <div class="field-row foto-row">
           <div class="foto-mini">${mini}</div>
           <div class="field" style="flex:1 1 160px;"><label>Foto</label>
             ${botao}
-            <input type="text" ${attr} data-idx="${idx}" value="${escapeHtml(m.foto)}" placeholder="Nome do arquivo (ex: yakissoba.jpg) ou link" aria-label="Foto">
-            <div class="foto-msg" data-foto-msg="${alvo}-${idx}"></div>
+            <input type="text" ${attr} data-idx="${idx}" value="${escapeHtml(m.foto)}" placeholder="${herdada ? 'Usando a foto do menu padrão' : 'Nome do arquivo (ex: yakissoba.jpg) ou link'}" aria-label="Foto">
+            <div class="foto-msg" data-foto-msg="${alvo}-${idx}">${herdada ? '↩ Foto herdada do menu padrão. Para usar outra só neste evento, toque em 📷.' : ''}</div>
           </div>
         </div>`;
 }
