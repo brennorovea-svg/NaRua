@@ -301,6 +301,15 @@
   .menu-site summary{cursor:pointer;font-family:'Poppins',sans-serif;font-size:12.5px;font-weight:600;color:var(--ink-soft);padding:4px 0;}
   .menu-site .field-row{margin:8px 0 0;}
   .menu-site .field-row:last-child{margin-bottom:0;}
+  /* v18: foto do prato (miniatura + botão de envio) */
+  .foto-row{align-items:flex-start;gap:10px;}
+  .foto-mini{flex:0 0 64px;width:64px;height:64px;border-radius:8px;overflow:hidden;background:var(--paper-2,#f2ece0);border:1px solid rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;font-size:24px;margin-top:18px;}
+  .foto-mini img{width:100%;height:100%;object-fit:cover;display:block;}
+  .foto-btn{display:inline-flex;align-items:center;gap:6px;margin:0 0 6px;padding:7px 12px;border-radius:8px;border:1.5px solid var(--ink,#222);background:#fff;font-family:'Poppins',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;}
+  .foto-btn:disabled{opacity:.6;cursor:wait;}
+  .foto-msg{font-size:12px;margin-top:4px;color:var(--ink-soft);}
+  .foto-msg.ok{color:#1d7a3a;}
+  .foto-msg.erro{color:#c62828;}
   .menu-check{display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;color:var(--ink);font-size:12.5px;}
   .menu-check input{width:18px;height:18px;margin:0;accent-color:var(--green);}
   .menu-check-titulo{font-size:12.5px;color:var(--ink-soft);margin-right:4px;}
@@ -1558,7 +1567,7 @@ document.getElementById('sairBtn').addEventListener('click', async () => {
 let infoServidor = { versao: 0, ia: false };
 
 async function consultarServidor(){
-  const info = { versao: 0, ia: false, login: null, usuario: null };
+  const info = { versao: 0, ia: false, fotos: false, login: null, usuario: null };
   if (!webhookUrl) return info;
   try {
     const ctrl = new AbortController();
@@ -1569,6 +1578,7 @@ async function consultarServidor(){
     if (j && j.ok) {
       info.versao = Number(j.versao) || 0;
       info.ia = !!j.ia;
+      info.fotos = !!j.fotos;
       info.login = j.login || null;
       info.usuario = j.usuario || null;
     }
@@ -2625,9 +2635,7 @@ function desenharEspRows(){
         <div class="field-row">
           <div class="field"><label>Descrição <span class="label-opcional">(opcional)</span></label><input type="text" data-esp="descricao" data-idx="${idx}" value="${escapeHtml(m.descricao)}" placeholder="Uma frase curta"></div>
         </div>
-        <div class="field-row">
-          <div class="field"><label>Foto <span class="label-opcional">(nome do arquivo na pasta fotos do site)</span></label><input type="text" data-esp="foto" data-idx="${idx}" value="${escapeHtml(m.foto)}" placeholder="Ex: yakissoba.jpg"></div>
-        </div>
+        ${campoFoto(m, idx, 'esp')}
         <div class="field-row">
           <span class="menu-check-titulo">Contém:</span>
           ${ALERGENICOS.map(([campo, txt]) => `<label class="menu-check"><input type="checkbox" data-esp="${campo}" data-idx="${idx}"${m[campo] ? ' checked' : ''}> ${txt}</label>`).join('')}
@@ -2757,6 +2765,138 @@ document.getElementById('espRows').addEventListener('click', e => {
   espAbertos = new Set([...espAbertos].filter(i => i !== idx).map(i => i > idx ? i - 1 : i));
   desenharEspRows();
 });
+// ---------- v18: foto do prato pelo app ----------
+// O app reduz a foto (lado maior até 1200 px, JPEG) e manda para o Apps Script
+// v15, que publica um arquivo NOVO na pasta fotos/ do site (repositório
+// NaRuaSite) e devolve o nome. O nome vai para o campo Foto do item. Nada é
+// apagado: a foto antiga continua lá e volta se você puser o nome antigo.
+const SITE_FOTOS = 'https://naruafoodtruck.com.br/fotos/';
+const FOTO_LADO_MAX = 1200;
+const FOTO_QUALIDADE = 0.82;
+const FOTO_PREVIA = {}; // nome do arquivo → foto local, até o site publicar
+let fotoAlvo = null;    // { alvo: 'menu' | 'esp', idx }
+const fotoArquivo = document.createElement('input');
+fotoArquivo.type = 'file';
+fotoArquivo.accept = 'image/*';
+fotoArquivo.style.display = 'none';
+document.body.appendChild(fotoArquivo);
+
+function podeEnviarFoto(){
+  return !!(infoServidor && (infoServidor.versao || 0) >= 15 && infoServidor.fotos);
+}
+// Mesma regra do site: nome de arquivo → pasta fotos/, link https como está,
+// link do Google Drive → miniatura do Drive.
+function srcFotoApp(valor){
+  const v = String(valor || '').trim();
+  if (!v) return '';
+  if (FOTO_PREVIA[v]) return FOTO_PREVIA[v];
+  const drive = v.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]{10,})/);
+  if (drive) return 'https://drive.google.com/thumbnail?id=' + drive[1] + '&sz=w300';
+  if (/^https?:\/\//i.test(v)) return v;
+  if (/^[\w./ -]+$/.test(v) && !v.includes('..')) return SITE_FOTOS + v.replace(/^\/+/, '');
+  return '';
+}
+function campoFoto(m, idx, alvo){
+  const attr = alvo === 'esp' ? 'data-esp="foto"' : 'data-menu-field="foto"';
+  const src = srcFotoApp(m.foto);
+  const mini = src
+    ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" onerror="this.parentNode.textContent='📷'">`
+    : '📷';
+  const v = (infoServidor && infoServidor.versao) || 0;
+  const botao = podeEnviarFoto()
+    ? `<button type="button" class="foto-btn" data-foto-alvo="${alvo}" data-idx="${idx}">📷 ${m.foto ? 'Trocar foto' : 'Enviar foto'}</button>`
+    : (v >= 15 ? '<div class="foto-msg">Para enviar foto pelo app, falta cadastrar o token do GitHub no Apps Script.</div>' : '');
+  return `
+        <div class="field-row foto-row">
+          <div class="foto-mini">${mini}</div>
+          <div class="field" style="flex:1 1 160px;"><label>Foto</label>
+            ${botao}
+            <input type="text" ${attr} data-idx="${idx}" value="${escapeHtml(m.foto)}" placeholder="Nome do arquivo (ex: yakissoba.jpg) ou link" aria-label="Foto">
+            <div class="foto-msg" data-foto-msg="${alvo}-${idx}"></div>
+          </div>
+        </div>`;
+}
+function msgFoto(alvo, idx, texto, tipo){
+  const el = document.querySelector(`[data-foto-msg="${alvo}-${idx}"]`);
+  if (el) { el.textContent = texto; el.className = 'foto-msg' + (tipo ? ' ' + tipo : ''); }
+}
+function reduzirFoto(arquivo){
+  return new Promise((ok, falha) => {
+    const url = URL.createObjectURL(arquivo);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const escala = Math.min(1, FOTO_LADO_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * escala);
+      c.height = Math.round(img.naturalHeight * escala);
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      ok(c.toDataURL('image/jpeg', FOTO_QUALIDADE));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); falha(new Error('não consegui abrir essa imagem')); };
+    img.src = url;
+  });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.foto-btn');
+  if (!b) return;
+  fotoAlvo = { alvo: b.dataset.fotoAlvo, idx: Number(b.dataset.idx) };
+  fotoArquivo.value = '';
+  fotoArquivo.click();
+});
+fotoArquivo.addEventListener('change', async e => {
+  const arquivo = e.target.files && e.target.files[0];
+  const alvoAtual = fotoAlvo;
+  fotoAlvo = null;
+  if (!arquivo || !alvoAtual) return;
+  const { alvo, idx } = alvoAtual;
+  const lista = alvo === 'esp' ? (espRascunho && espRascunho.itens) : menuRascunho;
+  const item = lista && lista[idx];
+  if (!item) return;
+  const botao = document.querySelector(`.foto-btn[data-foto-alvo="${alvo}"][data-idx="${idx}"]`);
+  if (botao) botao.disabled = true;
+  msgFoto(alvo, idx, 'Preparando a foto…', '');
+  try {
+    const dataUrl = await reduzirFoto(arquivo);
+    msgFoto(alvo, idx, 'Enviando para o site…', '');
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 60000);
+    let j;
+    try {
+      const res = await fetchServidor(webhookUrl, { method: 'POST', signal: ctrl.signal, body: JSON.stringify({
+        action: 'salvarFoto', nome: item.nome || item.chave, imagem: dataUrl.split(',')[1],
+        cardapio: alvo === 'esp' ? espRascunho.nome : 'Menu', sessao: sessaoAtual && sessaoAtual.sessao }) });
+      j = await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!j || !j.ok || !j.foto) throw new Error((j && j.erro) || 'resposta inesperada');
+    FOTO_PREVIA[j.foto] = dataUrl;
+    // Outros tamanhos do mesmo prato (mesmo nome no site, sem foto) ganham a mesma foto.
+    const nomeSite = String(item.nome || '').trim().toLowerCase();
+    let outros = 0;
+    lista.forEach((m, i) => {
+      if (i !== idx && nomeSite && String(m.nome || '').trim().toLowerCase() === nomeSite && !m.foto) { m.foto = j.foto; outros++; }
+    });
+    item.foto = j.foto;
+    const extra = outros ? ` Também coloquei ${outros === 1 ? 'no outro tamanho' : 'nos outros ' + outros + ' tamanhos'} de ${item.nome}.` : '';
+    if (alvo === 'esp') {
+      desenharEspRows();
+      msgFoto(alvo, idx, `✓ Foto enviada (${j.foto}).${extra} Toque em "Salvar cardápio do evento" para guardar.`, 'ok');
+    } else {
+      desenharMenuRows();
+      msgFoto(alvo, idx, `✓ Foto enviada.${extra} Aparece no site em cerca de 1 minuto.`, 'ok');
+      salvarCardapio();
+    }
+  } catch(err){
+    if (botao) botao.disabled = false;
+    msgFoto(alvo, idx, 'Não consegui enviar a foto (' + (err.name === 'AbortError' ? 'demorou demais' : (err.message || 'sem conexão')) + '). Tente de novo.', 'erro');
+  }
+});
+
 // v15: os cardápios de evento ficam numa tela própria (⭐ Editar menu de evento),
 // separada da edição do cardápio padrão.
 function renderMenuEventoView(){
@@ -2838,9 +2978,7 @@ function desenharMenuRows(){
         <div class="field-row">
           <div class="field" style="flex:1 1 110px;"><label>Preço iFood</label><input type="number" data-menu-field="preco_ifood" data-idx="${idx}" value="${m.preco_ifood || ''}" min="0" step="0.5"></div>
         </div>
-        <div class="field-row">
-          <div class="field"><label>Foto <span class="label-opcional">(nome do arquivo na pasta fotos do site)</span></label><input type="text" data-menu-field="foto" data-idx="${idx}" value="${escapeHtml(m.foto)}" placeholder="Ex: yakissoba.jpg"></div>
-        </div>
+        ${campoFoto(m, idx, 'menu')}
         <div class="field-row">
           <span class="menu-check-titulo">Contém:</span>
           ${ALERGENICOS.map(([campo, txt]) => `<label class="menu-check"><input type="checkbox" data-menu-field="${campo}" data-idx="${idx}"${m[campo] ? ' checked' : ''}> ${txt}</label>`).join('')}
