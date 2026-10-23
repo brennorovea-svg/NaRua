@@ -5,16 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0d0d0d">
+<style>html{background:#0d0d0d;}</style>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%BE%3C/text%3E%3C/svg%3E">
 <title>Comanda → Planilha</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script>
   // v21: a tela só aparece com as fontes carregadas e o login resolvido (evita o "pisca" ao abrir).
+  // v28: trava de segurança passou de 6 s para 8 s (a espera das fontes agora vai até 5 s).
   document.documentElement.classList.add('carregando');
-  setTimeout(function(){ document.documentElement.classList.remove('carregando'); }, 6000);
+  setTimeout(function(){ document.documentElement.classList.remove('carregando'); }, 8000);
 </script>
-<link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Poppins:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Poppins:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=block" rel="stylesheet">
 <style>
   :root{
     --bg:#0d0d0d;
@@ -1039,7 +1041,9 @@ const VIEW_SUBTITLES = {
   consultarCompras: 'Compras registradas em outra planilha',
   foodSecreto: 'O food truck que dá cupom no site'
 };
+let viewAtual = 'home';
 function showView(view){
+  viewAtual = VIEW_IDS[view] ? view : 'home';
   Object.values(VIEW_IDS).forEach(id => { document.getElementById(id).style.display = 'none'; });
   document.getElementById(VIEW_IDS[view] || VIEW_IDS.home).style.display = 'block';
   backBtn.style.display = view === 'home' ? 'none' : 'inline-flex';
@@ -1301,7 +1305,13 @@ async function init(){
   carregarCardapiosEspeciais().then(atualizarCardapioDoEvento);
   await loadHistory();
   await restaurarRascunho();
-  showView('home');
+  // v28: o app aparece antes de terminar de carregar. Se a pessoa já abriu uma
+  // opção, não volta para o início (era o "pisca e volta"); só atualiza a tela
+  // aberta com o cardápio que acabou de chegar da planilha.
+  if (viewAtual === 'home') showView('home');
+  else if (viewAtual === 'menu') renderMenuEditor();
+  else if (viewAtual === 'menuEvento') renderMenuEventoView();
+  else if (viewAtual === 'comandas') sugerirLocalDaAgenda();
 }
 
 // ---------- Rascunho: comandas em conferência sobrevivem a recarregar/fechar a aba ----------
@@ -1722,8 +1732,17 @@ let appRevelado = false;
 function revelarApp(){
   if (appRevelado) return;
   appRevelado = true;
-  const fontes = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
-  Promise.race([fontes, new Promise(r => setTimeout(r, 1500))])
+  // v28: pede as fontes explicitamente (o document.fonts.ready sozinho pode
+  // responder "pronto" antes de o navegador começar a baixar) e espera até 5 s.
+  // Antes eram 1,5 s: no 4G o app aparecia com a fonte do sistema e trocava
+  // logo depois, o "pisca". O logo também entra já carregado.
+  const pedirFontes = () => document.fonts && document.fonts.load
+    ? Promise.all(['16px "Titan One"', '400 16px Poppins', '600 16px Poppins', '700 16px Poppins', '800 16px Poppins']
+        .map(f => document.fonts.load(f).catch(() => null)))
+    : Promise.resolve();
+  const logo = document.querySelector('header .wordmark');
+  const logoPronto = logo && logo.decode ? logo.decode().catch(() => null) : Promise.resolve();
+  Promise.race([Promise.all([pedirFontes(), logoPronto]), new Promise(r => setTimeout(r, 5000))])
     .then(() => document.documentElement.classList.remove('carregando'));
 }
 
