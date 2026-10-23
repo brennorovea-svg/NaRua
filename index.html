@@ -313,6 +313,35 @@
   .save-msg{font-family:'Poppins',sans-serif;font-size:12.5px;color:var(--ink-soft);margin-top:10px;}
   .save-msg.ok{color:#3a8a4a;font-weight:600;}
   .save-msg.erro{color:var(--red);font-weight:600;}
+  /* ---------- 🚚 Food secreto (v25): regras do cupom do site, soltar agora e validar no balcão ---------- */
+  .home-card.c-secreto{background:var(--orange);color:var(--ink);border-style:dashed;}
+  .fs-hero{display:flex;align-items:center;gap:12px;}
+  .fs-hero .big{font-family:'Titan One',cursive;font-size:19px;flex:1;line-height:1.2;}
+  .fs-hero .big small{display:block;font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-soft);font-weight:600;}
+  .fs-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
+  .fs-stat{border:2px solid var(--ink);border-radius:10px;padding:8px;text-align:center;background:#fff;}
+  .fs-stat b{display:block;font-family:'Titan One',cursive;font-size:22px;}
+  .fs-stat span{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:600;}
+  .fs-barra{height:10px;border:2px solid var(--ink);border-radius:999px;background:#fff;margin-top:10px;overflow:hidden;}
+  .fs-barra i{display:block;height:100%;background:var(--orange);}
+  .fs-nota{font-size:12px;color:var(--ink-soft);margin:8px 0 0;}
+  .fs-soltar{display:flex;gap:8px;margin-top:12px;}
+  .fs-soltar select{flex:0 0 96px;}
+  .fs-soltar button{flex:1;padding:12px;border-radius:10px;border:2px solid var(--ink);background:var(--red);color:#fff;font-family:'Titan One',cursive;font-size:16px;cursor:pointer;box-shadow:3px 3px 0 var(--ink);}
+  .fs-valida{display:flex;gap:8px;} .fs-valida input{flex:1;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;}
+  .fs-resultado{margin-top:10px;border:2px solid var(--ink);border-radius:10px;padding:10px 12px;font-size:13.5px;color:var(--ink);}
+  .fs-resultado b{font-family:'Titan One',cursive;font-weight:400;font-size:16px;display:block;}
+  .fs-resultado.ok{background:#e6f6ea;} .fs-resultado.ok b{color:var(--green);}
+  .fs-resultado.nao{background:#fde8e8;} .fs-resultado.nao b{color:var(--red);}
+  .fs-lista{list-style:none;margin:0;padding:0;}
+  .fs-lista li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1.5px dashed var(--line);font-size:13px;color:var(--ink);}
+  .fs-lista li:last-child{border-bottom:0;}
+  .fs-lista code{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:14px;flex:1;}
+  .fs-lista .fs-regra{flex:1;cursor:pointer;background:none;border:0;text-align:left;font:inherit;color:inherit;padding:0;}
+  .fs-tag{font-size:10px;font-weight:800;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:2px solid var(--ink);white-space:nowrap;}
+  .fs-tag.ok{background:var(--green);color:#fff;} .fs-tag.livre{background:var(--orange);color:var(--ink);} .fs-tag.off{background:#ddd;color:var(--ink);}
+  .fs-chk{display:flex;align-items:center;gap:8px;text-transform:none;font-size:13.5px;color:var(--ink);letter-spacing:0;margin:4px 0 0;}
+  .fs-chk input{width:auto;margin:0;}
 
   .menu-item{border:2px solid var(--ink);border-radius:10px;padding:10px;margin-bottom:10px;background:#fffdf7;}
   .menu-item.esgotado{background:#fbecea;}
@@ -540,6 +569,10 @@
       <button class="home-card c-red" type="button" data-view="consultarCompras">
         <span class="icon">📦</span>
         <span class="title">Consultar compras</span>
+      </button>
+      <button class="home-card c-secreto" type="button" data-view="foodSecreto">
+        <span class="icon">🚚</span>
+        <span class="title">Food secreto</span>
       </button>
     </div>
   </div>
@@ -787,6 +820,38 @@
     <div id="comprasWrap"></div>
   </div>
 
+  <!-- 🚚 Food secreto (v25): o food truck que espia no cardápio do site e dá um cupom -->
+  <div id="viewFoodSecreto" style="display:none;">
+    <div class="card" id="fsStatus"><div class="agenda-vazio">Carregando...</div></div>
+
+    <div class="step-label">🎟️ Validar cupom no balcão</div>
+    <div class="card">
+      <div class="fs-valida"><input type="text" id="fsCodigo" placeholder="NARUA-XXXX" autocomplete="off" autocapitalize="characters"><button class="btn-primary" type="button" id="fsValidarBtn" style="flex:0 0 auto;padding:11px 16px">Validar</button></div>
+      <div id="fsResultado"></div>
+      <p class="fs-nota">Válido = vale o prêmio e fica marcado como usado. Código já usado ou de outro dia não vale.</p>
+    </div>
+
+    <div class="step-label">⚙️ Regras</div>
+    <div class="card">
+      <div class="field-row"><div class="field"><label for="fsQuando">Quando</label><select id="fsQuando"></select></div></div>
+      <label class="fs-chk"><input type="checkbox" id="fsLigado"> Ligado</label>
+      <div class="field-row" style="margin-top:12px"><div class="field"><label for="fsCada">Aparece a cada (acessos)</label><input type="number" id="fsCada" min="1" max="50" value="5"></div><div class="field"><label for="fsLimite">Limite por dia</label><input type="number" id="fsLimite" min="0" max="500" value="20"></div></div>
+      <div class="field-row"><div class="field"><label for="fsMensagem">Mensagem</label><input type="text" id="fsMensagem" maxlength="80" value="Você achou o food secreto!!"></div></div>
+      <div class="field-row"><div class="field"><label for="fsPremio">Prêmio</label><input type="text" id="fsPremio" maxlength="60" value="Vale 1 Guioza!!!!"></div></div>
+      <div class="field-row"><div class="field"><label for="fsTema">Visual</label><select id="fsTema"><option value="">Padrão (Marcia e Lynda na cabine)</option><option value="odd">ODD (só em evento especial)</option></select></div></div>
+      <div class="btn-row"><button class="btn-primary" type="button" id="fsSalvarBtn">Salvar regras</button></div>
+      <div class="save-msg" id="fsSalvarMsg"></div>
+      <p class="fs-nota">"Todo dia" é o food padrão. Uma regra de evento vale só naquele dia e local e passa na frente da "Todo dia".</p>
+    </div>
+
+    <div class="step-label">📋 Regras salvas</div>
+    <div class="card" id="fsRegras"><div class="agenda-vazio">Carregando...</div></div>
+
+    <div class="step-label">🧾 Cupons de hoje</div>
+    <div class="card" id="fsCupons"><div class="agenda-vazio">Carregando...</div></div>
+  </div>
+
+
   <footer class="app-footer">Desenvolvido por @Neon</footer>
 
 </div>
@@ -948,7 +1013,7 @@ const eventoLocal = document.getElementById('eventoLocal');
 const eventoAcrescimo = document.getElementById('eventoAcrescimo');
 
 const backBtn = document.getElementById('backBtn');
-const VIEW_IDS = { home:'viewHome', comandas:'viewComandas', menu:'viewMenu', menuEvento:'viewMenuEvento', bi:'viewBI', semanal:'viewSemanal', agenda:'viewAgenda', consultarCompras:'viewConsultarCompras' };
+const VIEW_IDS = { home:'viewHome', comandas:'viewComandas', menu:'viewMenu', menuEvento:'viewMenuEvento', bi:'viewBI', semanal:'viewSemanal', agenda:'viewAgenda', consultarCompras:'viewConsultarCompras', foodSecreto:'viewFoodSecreto' };
 const VIEW_SUBTITLES = {
   home: 'Escolha o que você quer fazer',
   comandas: 'Registro de vendas do food truck',
@@ -957,7 +1022,8 @@ const VIEW_SUBTITLES = {
   bi: 'Indicadores de venda',
   semanal: 'Acompanhamento semanal',
   agenda: 'Onde o food truck vai estar',
-  consultarCompras: 'Compras registradas em outra planilha'
+  consultarCompras: 'Compras registradas em outra planilha',
+  foodSecreto: 'O food truck que dá cupom no site'
 };
 function showView(view){
   Object.values(VIEW_IDS).forEach(id => { document.getElementById(id).style.display = 'none'; });
@@ -973,6 +1039,7 @@ function showView(view){
   if (view === 'comandas') sugerirLocalDaAgenda();
   document.querySelector('.wrap').classList.toggle('largo', view === 'semanal' || view === 'bi');
   if (view === 'consultarCompras') loadCompras();
+  if (view === 'foodSecreto') loadFoodSecreto();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 backBtn.addEventListener('click', () => showView('home'));
@@ -985,6 +1052,164 @@ document.getElementById('modalSave').addEventListener('click', saveWebhook);
 compileBtn.addEventListener('click', compilarLotes);
 galleryInput.addEventListener('change', e => handleFiles(e.target.files));
 // dados do evento agora só são salvos no momento do envio (ver compilarLotes/finalizarLocalmente)
+
+// ============================================================================
+// 🚚 Food secreto (v25, Apps Script v18). O site mostra o food truck no
+// cardápio e dá um cupom com código único. Aqui: regras por evento (ou "Todo
+// dia"), soltar o food na hora, validar o cupom no balcão e ver os cupons do dia.
+// ============================================================================
+let fsDados = null;
+const FS_TODO_DIA = 'todo-dia';
+
+function fsChave(data, local){ return data ? data + '|' + chaveLocal(local) : FS_TODO_DIA; }
+function fsDataCurta(d){ return d ? d.slice(8, 10) + '/' + d.slice(5, 7) : ''; }
+
+async function fsPost(corpo){
+  const res = await fetchServidor(webhookUrl, { method: 'POST', body: JSON.stringify(Object.assign({ sessao: sessaoAtual && sessaoAtual.sessao }, corpo)) });
+  let j;
+  try { j = await res.json(); } catch(e){ throw new Error('a planilha não respondeu em JSON'); }
+  if (!j || j.ok !== true) throw new Error(j && j.erro === 'login' ? 'sua sessão terminou; entre de novo com a conta Google' : (j && j.erro === 'ação desconhecida' ? 'publique o Apps Script v18 primeiro' : ((j && j.erro) || 'erro na planilha')));
+  return j;
+}
+
+async function loadFoodSecreto(){
+  const status = document.getElementById('fsStatus');
+  try {
+    const res = await fetchServidor(urlServidor({ action: 'foodSecretoPainel' }));
+    let j;
+    try { j = await res.json(); } catch(e){ throw new Error('a planilha não respondeu em JSON'); }
+    if (!j || j.ok !== true) throw new Error(j && j.erro === 'login' ? 'sua sessão terminou; entre de novo com a conta Google' : 'publique o Apps Script v18 primeiro');
+    fsDados = j;
+    renderFoodSecreto();
+  } catch(err){
+    status.innerHTML = '<div class="agenda-vazio">Não consegui carregar: ' + escapeHtml(err.message) + '</div>';
+  }
+}
+
+function fsOpcoesQuando(){
+  const vistos = new Set([FS_TODO_DIA]);
+  const ops = [{ chave: FS_TODO_DIA, texto: 'Todo dia (food padrão)', data: '', local: '', evento: '', especial: false }];
+  (fsDados.eventos || []).forEach(ev => {
+    const k = fsChave(ev.data, ev.local);
+    if (vistos.has(k)) return; vistos.add(k);
+    ops.push({ chave: k, texto: fsDataCurta(ev.data) + ' · ' + (ev.evento || ev.local) + (ev.especial ? ' ⭐' : ''), data: ev.data, local: ev.local, evento: ev.evento, especial: ev.especial });
+  });
+  // regras de eventos que já saíram da agenda continuam editáveis
+  (fsDados.regras || []).forEach(r => {
+    const k = fsChave(r.data, r.local);
+    if (vistos.has(k)) return; vistos.add(k);
+    ops.push({ chave: k, texto: fsDataCurta(r.data) + ' · ' + (r.evento || r.local), data: r.data, local: r.local, evento: r.evento, especial: false });
+  });
+  return ops;
+}
+
+function renderFoodSecreto(){
+  const d = fsDados, hoje = d.hoje;
+  const regra = (d.regras || []).find(r => r.id === d.regraHoje);
+  const daRegra = (d.cupons || []).filter(c => regra && c.regra === regra.id);
+  const usados = daRegra.filter(c => c.status === 'Usado').length;
+  const restam = regra ? Math.max(0, regra.limite - daRegra.length) : 0;
+  const pct = regra && regra.limite ? Math.min(100, Math.round(daRegra.length / regra.limite * 100)) : 0;
+  const onde = regra ? (regra.data ? (d.eventoHoje && (d.eventoHoje.evento || d.eventoHoje.local)) || regra.local : 'Todo dia') : '';
+  document.getElementById('fsStatus').innerHTML = regra
+    ? `<div class="fs-hero"><span class="big">Food secreto ligado hoje<small>${escapeHtml(onde)} · ${escapeHtml(regra.premio)} · a cada ${regra.cada} acessos${regra.tema === 'odd' ? ' · visual ODD' : ''}</small></span></div>
+       <div class="fs-stats"><div class="fs-stat"><b>${daRegra.length}</b><span>Apareceu</span></div><div class="fs-stat"><b>${usados}</b><span>Resgatados</span></div><div class="fs-stat"><b>${restam}</b><span>Restam</span></div></div>
+       <div class="fs-barra"><i style="width:${pct}%"></i></div>
+       <p class="fs-nota">Limite de hoje: ${regra.limite}. Quando acabar, o food some do site sozinho.${regra.soltar ? ' Soltos agora: ' + regra.soltar + '.' : ''}</p>
+       <div class="fs-soltar"><select id="fsSoltarN"><option>1</option><option selected>3</option><option>5</option><option>10</option></select><button type="button" id="fsSoltarBtn">🚀 Soltar o food agora</button></div>
+       <p class="fs-nota">Os próximos visitantes do cardápio veem o food na hora, sem esperar a regra dos acessos.</p>
+       <div class="save-msg" id="fsSoltarMsg"></div>`
+    : `<div class="fs-hero"><span class="big">Food secreto desligado hoje<small>Nenhuma regra ligada para hoje (${fsDataCurta(hoje)}). Ligue "Todo dia" ou a regra do evento abaixo.</small></span></div>`;
+  const soltar = document.getElementById('fsSoltarBtn');
+  if (soltar) soltar.addEventListener('click', () => soltarFoodSecreto(regra.id));
+
+  const sel = document.getElementById('fsQuando'), atual = sel.value;
+  const ops = fsOpcoesQuando();
+  sel.innerHTML = ops.map(o => `<option value="${escapeHtml(o.chave)}">${escapeHtml(o.texto)}</option>`).join('');
+  sel.value = ops.some(o => o.chave === atual) ? atual : (regra ? fsChave(regra.data, regra.local) : FS_TODO_DIA);
+  fsPreencherForm();
+
+  const regras = d.regras || [];
+  document.getElementById('fsRegras').innerHTML = regras.length
+    ? '<ul class="fs-lista">' + regras.map(r => `<li><button class="fs-regra" type="button" data-fs-chave="${escapeHtml(fsChave(r.data, r.local))}"><b>${escapeHtml(r.data ? fsDataCurta(r.data) + ' · ' + (r.evento || r.local) : 'Todo dia')}</b><br>${escapeHtml(r.premio)} · a cada ${r.cada} · ${r.limite}/dia${r.tema === 'odd' ? ' · ODD' : ''}</button><span class="fs-tag ${r.ligado ? 'ok' : 'off'}">${r.ligado ? 'Ligado' : 'Desligado'}</span></li>`).join('') + '</ul>'
+    : '<div class="agenda-vazio">Nenhuma regra ainda. Configure acima e salve.</div>';
+  document.querySelectorAll('[data-fs-chave]').forEach(b => b.addEventListener('click', () => { sel.value = b.dataset.fsChave; fsPreencherForm(); sel.scrollIntoView({ behavior: 'smooth', block: 'center' }); }));
+
+  const cupons = (d.cupons || []).slice().reverse();
+  document.getElementById('fsCupons').innerHTML = cupons.length
+    ? '<ul class="fs-lista">' + cupons.map(c => `<li><code>${escapeHtml(c.codigo)}</code><span>${escapeHtml(c.gerado)}</span><span class="fs-tag ${c.status === 'Usado' ? 'ok' : 'livre'}">${escapeHtml(c.status)}</span></li>`).join('') + '</ul><p class="fs-nota">Tudo fica na aba "Food secreto cupons" da planilha.</p>'
+    : '<div class="agenda-vazio">Nenhum cupom hoje.</div>';
+}
+
+function fsPreencherForm(){
+  const sel = document.getElementById('fsQuando');
+  const op = fsOpcoesQuando().find(o => o.chave === sel.value) || { chave: FS_TODO_DIA };
+  const r = (fsDados.regras || []).find(x => fsChave(x.data, x.local) === op.chave);
+  document.getElementById('fsLigado').checked = r ? r.ligado : false;
+  document.getElementById('fsCada').value = r ? r.cada : 5;
+  document.getElementById('fsLimite').value = r ? r.limite : 20;
+  document.getElementById('fsMensagem').value = r ? r.mensagem : 'Você achou o food secreto!!';
+  document.getElementById('fsPremio').value = r ? r.premio : 'Vale 1 Guioza!!!!';
+  const tema = document.getElementById('fsTema');
+  tema.querySelector('option[value="odd"]').disabled = !op.especial;
+  tema.value = r && r.tema && op.especial ? r.tema : '';
+  document.getElementById('fsSalvarMsg').textContent = '';
+}
+
+async function salvarFoodSecreto(){
+  const msg = document.getElementById('fsSalvarMsg'), btn = document.getElementById('fsSalvarBtn');
+  const op = fsOpcoesQuando().find(o => o.chave === document.getElementById('fsQuando').value);
+  if (!op) return;
+  const atual = (fsDados.regras || []).find(x => fsChave(x.data, x.local) === op.chave);
+  const regra = {
+    id: atual ? atual.id : '', data: op.data, local: op.local, evento: op.evento,
+    ligado: document.getElementById('fsLigado').checked,
+    cada: document.getElementById('fsCada').value, limite: document.getElementById('fsLimite').value,
+    mensagem: document.getElementById('fsMensagem').value.trim(), premio: document.getElementById('fsPremio').value.trim(),
+    tema: document.getElementById('fsTema').value
+  };
+  if (!regra.premio) { msg.className = 'save-msg erro'; msg.textContent = 'Escreva o prêmio.'; return; }
+  btn.disabled = true; btn.textContent = 'Salvando...'; msg.textContent = ''; msg.className = 'save-msg';
+  try {
+    await fsPost({ action: 'salvarFoodSecreto', regra });
+    await loadFoodSecreto();
+    document.getElementById('fsQuando').value = op.chave; fsPreencherForm();
+    msg.className = 'save-msg ok'; msg.textContent = '✅ Regras salvas. O site já usa em até 20 segundos.';
+  } catch(err){
+    msg.className = 'save-msg erro'; msg.textContent = 'Não salvou: ' + err.message;
+  } finally { btn.disabled = false; btn.textContent = 'Salvar regras'; }
+}
+
+async function soltarFoodSecreto(id){
+  const msg = document.getElementById('fsSoltarMsg'), n = document.getElementById('fsSoltarN').value;
+  try {
+    await fsPost({ action: 'soltarFoodSecreto', id, n });
+    await loadFoodSecreto();
+    const m = document.getElementById('fsSoltarMsg');
+    m.className = 'save-msg ok'; m.textContent = '🚀 Solto! Os próximos ' + n + ' visitantes do cardápio veem o food.';
+  } catch(err){ msg.className = 'save-msg erro'; msg.textContent = 'Não soltou: ' + err.message; }
+}
+
+async function validarCupomFS(){
+  const input = document.getElementById('fsCodigo'), out = document.getElementById('fsResultado'), btn = document.getElementById('fsValidarBtn');
+  const codigo = input.value.trim();
+  if (!codigo) return;
+  btn.disabled = true;
+  try {
+    const j = await fsPost({ action: 'validarCupom', codigo });
+    out.innerHTML = j.valido
+      ? `<div class="fs-resultado ok"><b>✅ ${escapeHtml(j.premio || 'Válido')}</b>${escapeHtml(j.codigo)} gerado hoje às ${escapeHtml(j.gerado)}. Marcado como usado agora.</div>`
+      : `<div class="fs-resultado nao"><b>❌ Não vale</b>${escapeHtml(j.motivo || '')}</div>`;
+    if (j.valido) { input.value = ''; loadFoodSecreto(); }
+  } catch(err){
+    out.innerHTML = `<div class="fs-resultado nao"><b>Não consegui validar</b>${escapeHtml(err.message)}</div>`;
+  } finally { btn.disabled = false; }
+}
+
+document.getElementById('fsQuando').addEventListener('change', fsPreencherForm);
+document.getElementById('fsSalvarBtn').addEventListener('click', salvarFoodSecreto);
+document.getElementById('fsValidarBtn').addEventListener('click', validarCupomFS);
+document.getElementById('fsCodigo').addEventListener('keydown', e => { if (e.key === 'Enter') validarCupomFS(); });
 
 init();
 
