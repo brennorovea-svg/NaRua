@@ -8,6 +8,12 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%BE%3C/text%3E%3C/svg%3E">
 <title>Comanda → Planilha</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script>
+  // v21: a tela só aparece com as fontes carregadas e o login resolvido (evita o "pisca" ao abrir).
+  document.documentElement.classList.add('carregando');
+  setTimeout(function(){ document.documentElement.classList.remove('carregando'); }, 6000);
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Poppins:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -253,6 +259,12 @@
   .date-filter-link{background:none;border:none;padding:0;font-family:'Poppins',sans-serif;font-size:11.5px;font-weight:700;color:var(--red);cursor:pointer;text-decoration:underline;}
 
   .calendar{background:#fffdf6;}
+  /* v21: tela de abertura e calendário com largura limitada no computador */
+  html.carregando body > *{opacity:0;}
+  body > *{transition:opacity .25s ease;}
+  html.carregando body::after{content:'';position:fixed;top:50%;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:4px solid rgba(247,241,226,.18);border-top-color:var(--orange);border-radius:50%;animation:girarAbertura .8s linear infinite;}
+  @keyframes girarAbertura{to{transform:rotate(360deg);}}
+  .calendar{max-width:420px;}
   .cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
   .cal-nav-btn{background:#fff;border:2px solid var(--ink);border-radius:7px;width:30px;height:30px;font-size:16px;line-height:1;cursor:pointer;color:var(--ink);font-weight:700;}
   .cal-nav-btn:hover{background:var(--orange);}
@@ -1003,8 +1015,12 @@ async function init(){
     const s = await storageGet('config:sessao', false);
     if (s && s.value) sessaoAtual = JSON.parse(s.value);
   } catch(e){ sessaoAtual = null; }
+  // Com sessão guardada, mostra o app assim que as fontes chegam; sem sessão,
+  // espera o servidor dizer se precisa de login (assim o início não aparece e some).
+  if (sessaoAtual) revelarApp();
   infoServidor = await consultarServidor();
   await garantirLogin();
+  revelarApp();
   // A chave de API não fica mais no aparelho: apaga qualquer chave antiga.
   try { await storageSet('config:apikey', '', false); } catch(e){}
   try { await storageSet('config:token', '', false); } catch(e){}
@@ -1459,6 +1475,15 @@ async function guardarSessao(s){
 }
 
 // Só segue quando houver login válido (ou quando a planilha não pede login).
+let appRevelado = false;
+function revelarApp(){
+  if (appRevelado) return;
+  appRevelado = true;
+  const fontes = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+  Promise.race([fontes, new Promise(r => setTimeout(r, 1500))])
+    .then(() => document.documentElement.classList.remove('carregando'));
+}
+
 async function garantirLogin(){
   const login = infoServidor && infoServidor.login;
   if (!login || !login.clientId) {
@@ -1494,6 +1519,7 @@ function carregarGoogle(){
 
 function pedirLogin(clientId, aviso){
   loginBg.classList.add('show');
+  revelarApp();
   mensagemLogin(aviso || '', aviso ? 'erro' : '');
   const pronto = new Promise(resolve => { loginResolver = resolve; });
   carregarGoogle().then(() => {
