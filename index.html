@@ -229,6 +229,20 @@
 
   .bi-two-col{display:flex;gap:14px;}
   .bi-two-col>div{flex:1;min-width:0;}
+  /* v20: Indicadores */
+  .ind-frase{font-family:'Poppins',sans-serif;font-size:14px;line-height:1.5;color:var(--ink);}
+  .ind-sub{font-weight:500;font-size:11.5px;color:var(--ink-soft);}
+  .sem-kpi.ind-largo{grid-column:1 / -1;}
+  .ind-tier-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-family:'Poppins',sans-serif;font-size:13px;color:var(--ink);}
+  .ind-tier-row .sem-tier{width:24px;height:24px;font-size:11.5px;flex-shrink:0;}
+  .ind-tier-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ind-tier-q,.ind-tier-p{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);}
+  .ind-tier-v{font-family:'IBM Plex Mono',monospace;font-size:12.5px;min-width:76px;text-align:right;}
+  .ind-tier-p{min-width:32px;text-align:right;}
+  .ind-mais summary{cursor:pointer;font-family:'Poppins',sans-serif;font-weight:600;font-size:12.5px;color:var(--ink-soft);padding:8px 0 2px;}
+  .ind-acoes{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ind-acoes .save-btn{margin:0;}
+  .ind-btn-alt{background:#fffdf6 !important;color:var(--ink) !important;}
   .bi-mini-title{font-family:'Poppins',sans-serif;font-weight:700;font-size:11.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;}
   .growth-tag{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;flex-shrink:0;}
   .growth-tag.up{background:#e3f6e7;color:var(--green);}
@@ -500,9 +514,9 @@
       </button>
       <button class="home-card c-cyan" type="button" data-view="bi">
         <span class="icon">📊</span>
-        <span class="title">Inteligência</span>
+        <span class="title">Indicadores</span>
       </button>
-      <button class="home-card c-green" type="button" data-view="semanal">
+      <button class="home-card c-green" type="button" data-view="semanal" style="display:none;">
         <span class="icon">📈</span>
         <span class="title">Acom. Semanal</span>
       </button>
@@ -927,7 +941,7 @@ const VIEW_SUBTITLES = {
   comandas: 'Registro de vendas do food truck',
   menu: 'Cardápio do app e do site',
   menuEvento: 'Cardápios dos eventos especiais',
-  bi: 'Inteligência do negócio',
+  bi: 'Indicadores de venda',
   semanal: 'Acompanhamento semanal',
   agenda: 'Onde o food truck vai estar',
   consultarCompras: 'Compras registradas em outra planilha'
@@ -3207,8 +3221,7 @@ async function loadBI(force){
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const dados = await res.json();
     if (!Array.isArray(dados)) throw new Error('resposta inesperada');
-    dados.forEach(r => { if (r && r.local) r.local = localPadrao(r.local); });
-    biDados = dados;
+    biDados = prepararDadosBI(dados);
     biUltimaAtualizacao = new Date();
     renderBI(biDados);
   } catch(err){
@@ -3226,15 +3239,20 @@ async function loadBI(force){
 
 let biUltimaAtualizacao = null;
 
+// v20: Indicadores (antiga Inteligência) no formato aprovado (proposta A):
+// filtro por evento + datas daquele evento, resumo em uma frase, 5 indicadores
+// com variação contra a última vez no mesmo local, tierlist, formas de
+// pagamento e atalhos para comparar semanas e para a análise com IA.
+// As regras de comanda, bebida e tier são as mesmas do Acom. Semanal.
 function renderBI(dados){
   const wrap = document.getElementById('biWrap');
+  const toolbar = `<div class="bi-toolbar">
+      <span class="bi-updated">${biUltimaAtualizacao ? 'atualizado às ' + biUltimaAtualizacao.toLocaleTimeString('pt-BR') : ''}</span>
+      <button class="bi-refresh" id="biRefreshBtn">↻ Atualizar</button>
+    </div>`;
 
   if (dados.length === 0){
-    wrap.innerHTML = `<div class="bi-toolbar">
-        <span class="bi-updated">${biUltimaAtualizacao ? 'atualizado às ' + biUltimaAtualizacao.toLocaleTimeString('pt-BR') : ''}</span>
-        <button class="bi-refresh" id="biRefreshBtn">↻ Atualizar</button>
-      </div>
-      <div class="card placeholder-card">
+    wrap.innerHTML = toolbar + `<div class="card placeholder-card">
         <span class="icon">📊</span>
         <h2>Sem dados ainda</h2>
         <p>Assim que as primeiras comandas forem enviadas pra planilha, os indicadores aparecem aqui.</p>
@@ -3254,8 +3272,9 @@ function renderBI(dados){
   const labelPorData = iso => Array.from(localPorData.get(iso) || ['sem local']).join(' + ');
 
   const todosLocais = Array.from(new Set(dados.map(row => row.local || 'sem local'))).sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  if (biLocalSelecionado !== 'todos' && !todosLocais.includes(biLocalSelecionado)) biLocalSelecionado = 'todos';
 
-  // datas disponíveis no dataset completo, já restritas ao evento/local escolhido, pra montar o calendário
+  // datas do evento escolhido (ou de todos), para o calendário
   const datasComData = Array.from(new Set(
     dados.map(row => extrairDataEvento(row.data_evento)).filter(Boolean)
   )).filter(d => biLocalSelecionado === 'todos' || (localPorData.get(d) || new Set()).has(biLocalSelecionado));
@@ -3275,7 +3294,6 @@ function renderBI(dados){
   });
 
   const opcoesLocais = todosLocais.map(l => `<option value="${escapeHtml(l)}" ${biLocalSelecionado === l ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('');
-
   const filtroHTML = `
     <div class="card">
       <div class="bi-section-title">Filtrar por evento</div>
@@ -3290,13 +3308,7 @@ function renderBI(dados){
     </div>`;
 
   if (dadosFiltrados.length === 0){
-    wrap.innerHTML = `
-      <div class="bi-toolbar">
-        <span class="bi-updated">${biUltimaAtualizacao ? 'atualizado às ' + biUltimaAtualizacao.toLocaleTimeString('pt-BR') : ''}</span>
-        <button class="bi-refresh" id="biRefreshBtn">↻ Atualizar</button>
-      </div>
-      ${filtroHTML}
-      <div class="card placeholder-card">
+    wrap.innerHTML = toolbar + filtroHTML + `<div class="card placeholder-card">
         <span class="icon">🗓️</span>
         <h2>Nenhuma data selecionada</h2>
         <p>Escolha ao menos uma data no filtro acima para ver os indicadores.</p>
@@ -3306,161 +3318,155 @@ function renderBI(dados){
     return;
   }
 
-  // total histórico por evento (local+data), a partir do dataset COMPLETO (não filtrado) —
-  // o crescimento de um evento é sempre comparado com o evento anterior no mesmo local,
-  // independente do filtro de data/evento que está sendo visualizado agora.
-  const totalPorEventoCompleto = new Map(); // 'local|data' -> total
-  dados.forEach(row => {
-    const data = extrairDataEvento(row.data_evento);
-    if (!data) return;
-    const key = (row.local || 'sem local') + '|' + data;
-    totalPorEventoCompleto.set(key, (totalPorEventoCompleto.get(key) || 0) + (Number(row.valor_total) || 0));
-  });
-  const eventosPorLocal = new Map(); // local -> [{data, total}] ordenado por data asc
-  totalPorEventoCompleto.forEach((total, key) => {
-    const [local, data] = key.split('|');
-    const lista = eventosPorLocal.get(local) || [];
-    lista.push({ data, total });
-    eventosPorLocal.set(local, lista);
-  });
-  eventosPorLocal.forEach(lista => lista.sort((a,b) => a.data.localeCompare(b.data)));
-  function calcularCrescimento(local, data){
-    const lista = eventosPorLocal.get(local) || [];
-    const idx = lista.findIndex(e => e.data === data);
-    if (idx <= 0) return null; // primeiro evento registrado nesse local, sem base de comparação
-    const anterior = lista[idx-1].total;
-    if (anterior <= 0) return null;
-    const pct = Math.round(((lista[idx].total - anterior) / anterior) * 100);
-    return { pct, dir: pct >= 0 ? 'up' : 'down' };
+  const r = resumoSemana(dadosFiltrados);
+  const eventos = r.eventos.filter(e => e.data).sort((a, b) => a.data.localeCompare(b.data) || a.local.localeCompare(b.local, 'pt-BR'));
+  const umEvento = eventos.length === 1 ? eventos[0] : null;
+
+  // Variação: só com um evento no recorte, contra a última vez no mesmo local
+  // (histórico completo, independente do filtro).
+  let anterior = null;
+  if (umEvento){
+    const datasAntes = Array.from(new Set(dados
+      .filter(row => (row.local || 'sem local') === umEvento.local)
+      .map(row => extrairDataEvento(row.data_evento))
+      .filter(d => d && d < umEvento.data))).sort();
+    const dAnt = datasAntes.pop();
+    if (dAnt) anterior = { data: dAnt, r: resumoSemana(dados.filter(row => (row.local || 'sem local') === umEvento.local && extrairDataEvento(row.data_evento) === dAnt)) };
   }
 
-  // agrupamentos (só sobre o que está dentro do filtro atual)
-  const comandaInfo = new Map();  // chaveComanda -> { total, pagamento }
-  const eventoMap = new Map();    // 'data|local' -> total
-  const pagamentoMap = new Map(); // forma de pagamento -> total (soma de tudo)
-  const itemMap = new Map();      // item -> { quantidade, total }
-  let totalGeralBI = 0;
-  let pratosVendidos = 0;
+  const tx = tierlist(r.itens, r.total);
 
-  dadosFiltrados.forEach(row => {
-    const valor = Number(row.valor_total) || 0;
-    const qtd = Number(row.quantidade) || 0;
-    totalGeralBI += valor;
-    pratosVendidos += qtd;
+  // Frase-resumo
+  const destaque = tx[0];
+  let frase;
+  if (umEvento){
+    frase = `<b>${escapeHtml(umEvento.local)}</b> em ${formatDataCurta(umEvento.data)} faturou <b>${formatBRL(r.total)}</b> em <b>${r.nComandas} comandas</b>.`;
+    if (anterior){
+      const v = variacao(r.total, anterior.r.total);
+      frase += ` ${v >= 0 ? 'Subiu' : 'Caiu'} <b>${formatNum(Math.abs(v), 0)}%</b> contra a última vez no local (${formatDataCurta(anterior.data)}).`;
+    } else {
+      frase += ' Primeira vez neste local.';
+    }
+  } else {
+    const maior = eventos.slice().sort((a, b) => b.total - a.total)[0];
+    frase = `<b>${eventos.length} eventos</b> no recorte somam <b>${formatBRL(r.total)}</b> em <b>${r.nComandas} comandas</b>.`;
+    if (maior) frase += ` O maior foi <b>${escapeHtml(maior.local)}</b> (${formatDataCurta(maior.data)}), com ${formatBRL(maior.total)}.`;
+  }
+  if (destaque && r.total > 0) frase += ` ${escapeHtml(destaque.nome)} puxou ${formatNum(destaque.pct, 0)}% da receita.`;
 
-    // Linhas gravadas pela versão 2 trazem o ID único da comanda; linhas antigas
-    // (sem ID) caem na chave aproximada de antes.
-    const chaveComanda = (row.comanda_id && String(row.comanda_id).startsWith('cmd_'))
-      ? String(row.comanda_id)
-      : [row.registrado_em, row.cliente, row.pagamento, row.numero_comanda || ''].join('|');
-    const info = comandaInfo.get(chaveComanda) || { total: 0, pagamento: row.pagamento || 'não informado' };
-    info.total += valor;
-    comandaInfo.set(chaveComanda, info);
-
-    const chaveEvento = (extrairDataEvento(row.data_evento) || 'sem data') + '|' + (row.local || 'sem local');
-    eventoMap.set(chaveEvento, (eventoMap.get(chaveEvento) || 0) + valor);
-
-    const pag = row.pagamento || 'não informado';
-    pagamentoMap.set(pag, (pagamentoMap.get(pag) || 0) + valor);
-
-    const nomeItem = nomePadrao(row.item) || 'Sem nome';
-    const atual = itemMap.get(nomeItem) || { quantidade: 0, total: 0 };
-    atual.quantidade += qtd;
-    atual.total += valor;
-    itemMap.set(nomeItem, atual);
-  });
-
-  const qtdComandas = comandaInfo.size;
-  const ticketMedio = qtdComandas > 0 ? totalGeralBI / qtdComandas : 0;
-
-  // ticket médio por forma de pagamento = soma das comandas daquele pagamento / nº de comandas daquele pagamento
-  const pagamentoComandas = new Map(); // pagamento -> { total, count }
-  comandaInfo.forEach(info => {
-    const c = pagamentoComandas.get(info.pagamento) || { total: 0, count: 0 };
-    c.total += info.total;
-    c.count += 1;
-    pagamentoComandas.set(info.pagamento, c);
-  });
-  const ticketPorPagamento = Array.from(pagamentoComandas.entries())
-    .map(([nome, c]) => [nome, c.count > 0 ? c.total / c.count : 0])
-    .sort((a,b) => b[1]-a[1]);
-
-  const porEvento = Array.from(eventoMap.entries()).sort((a,b) => b[1]-a[1]).slice(0, 8);
-  const porPagamento = Array.from(pagamentoMap.entries()).sort((a,b) => b[1]-a[1]);
-  const porItemQtd = Array.from(itemMap.entries()).sort((a,b) => b[1].quantidade - a[1].quantidade);
-  const maisVendidos = porItemQtd.slice(0, 5);
-  const parados = porItemQtd.slice(-5).reverse();
-
-  const maxPagamento = Math.max(1, ...porPagamento.map(p => p[1]));
-  const maxTicketPagamento = Math.max(1, ...ticketPorPagamento.map(p => p[1]));
-
-  const barrasHTML = (lista, max) => lista.map(([nome, valor]) => `
-    <div class="bi-bar-row">
-      <div class="bi-bar-label"><span class="bi-bar-name">${escapeHtml(nome)}</span><span class="bi-bar-value">${formatBRL(valor)}</span></div>
-      <div class="bi-bar-track"><div class="bi-bar-fill" style="width:${Math.max(4, (valor/max)*100)}%"></div></div>
-    </div>`).join('');
-
-  const maxEventoValor = Math.max(1, ...porEvento.map(e => e[1]));
-  const eventosHTML = porEvento.map(([chave, valor]) => {
-    const [data, local] = chave.split('|');
-    const crescimento = data !== 'sem data' ? calcularCrescimento(local, data) : null;
-    const nomeExibicao = data !== 'sem data' ? `${local} — ${formatDataCurta(data)}` : local;
-    const tagCrescimento = crescimento ? `<span class="growth-tag ${crescimento.dir}">${crescimento.dir === 'up' ? '↑' : '↓'} ${Math.abs(crescimento.pct)}%</span>` : '';
-    return `
-    <div class="bi-bar-row">
-      <div class="bi-bar-label"><span class="bi-bar-name">${escapeHtml(nomeExibicao)}</span><span class="bi-bar-value">${formatBRL(valor)} ${tagCrescimento}</span></div>
-      <div class="bi-bar-track"><div class="bi-bar-fill" style="width:${Math.max(4, (valor/maxEventoValor)*100)}%"></div></div>
+  // Indicadores
+  const ry = anterior ? anterior.r : null;
+  const delta = (campo, pontos) => {
+    if (!umEvento) return `<span class="sem-kpi-y"></span>`;
+    if (!ry) return `<span class="sem-delta neutro">primeira vez no local</span>`;
+    return pontos ? tagPontos(r[campo] - ry[campo]) : tagVariacao(r[campo], ry[campo]);
+  };
+  const kpi = (rotulo, campo, fmt, extra, pontos) => `<div class="sem-kpi ${extra || ''}">
+      <span class="sem-kpi-rot">${rotulo}</span>
+      <span class="sem-kpi-val">${fmt(r[campo])}</span>
+      ${delta(campo, pontos)}
+      <span class="sem-kpi-y">${ry ? 'antes: ' + fmt(ry[campo]) : (umEvento ? '' : (campo === 'total' ? eventos.length + (eventos.length === 1 ? ' evento' : ' eventos') : ''))}</span>
     </div>`;
-  }).join('');
-
-  const maisVendidosHTML = maisVendidos.map(([nome, info]) => `<div class="bi-item-row"><span>${escapeHtml(nome)}</span><span class="bi-item-total">×${info.quantidade}</span></div>`).join('');
-  const paradosHTML = parados.map(([nome, info]) => `<div class="bi-item-row"><span>${escapeHtml(nome)}</span><span class="bi-item-total">×${info.quantidade}</span></div>`).join('');
-
-  wrap.innerHTML = `
-    <div class="bi-toolbar">
-      <span class="bi-updated">${biUltimaAtualizacao ? 'atualizado às ' + biUltimaAtualizacao.toLocaleTimeString('pt-BR') : ''}</span>
-      <button class="bi-refresh" id="biRefreshBtn">↻ Atualizar</button>
+  const kpisHTML = `<div class="card">
+    <div class="bi-section-title">Indicadores${umEvento && ry ? ` <span class="ind-sub">contra ${escapeHtml(umEvento.local)} em ${formatDataCurta(anterior.data)}</span>` : ''}</div>
+    <div class="sem-kpis">
+      ${kpi('Faturamento', 'total', formatBRL, 'ind-largo')}
+      ${kpi('Comandas', 'nComandas', n => formatNum(n, 0))}
+      ${kpi('Ticket médio', 'ticket', formatBRL)}
+      ${kpi('Itens por comanda', 'itensPorComanda', n => formatNum(n, 1))}
+      ${kpi('Com bebida', 'pctBebida', formatPct, '', true)}
     </div>
+  </div>`;
 
-    ${filtroHTML}
+  // Faturamento por evento (só quando há mais de um evento no recorte)
+  const totalPorLocalData = new Map();
+  dados.forEach(row => {
+    const d = extrairDataEvento(row.data_evento);
+    if (!d) return;
+    const k = (row.local || 'sem local') + '|' + d;
+    totalPorLocalData.set(k, (totalPorLocalData.get(k) || 0) + (Number(row.valor_total) || 0));
+  });
+  const anteriorNoLocal = (local, data) => {
+    let melhor = null;
+    totalPorLocalData.forEach((t, k) => {
+      const [l, d] = k.split('|');
+      if (l === local && d < data && (!melhor || d > melhor.d)) melhor = { d, t };
+    });
+    return melhor;
+  };
+  const maxEv = Math.max(1, ...eventos.map(e => e.total));
+  const eventosHTML = eventos.length > 1 ? `<div class="card">
+    <div class="bi-section-title">Faturamento por evento</div>
+    ${eventos.map(e => {
+      const ant = anteriorNoLocal(e.local, e.data);
+      const tag = ant ? tagVariacao(e.total, ant.t) : `<span class="sem-delta neutro">primeira vez</span>`;
+      return `<div class="bi-bar-row">
+        <div class="bi-bar-label"><span class="bi-bar-name">${escapeHtml(e.local)} — ${formatDataCurta(e.data)}</span><span class="bi-bar-value">${formatBRL(e.total)} ${tag}</span></div>
+        <div class="bi-bar-track"><div class="bi-bar-fill" style="width:${Math.max(4, e.total / maxEv * 100)}%"></div></div>
+      </div>`;
+    }).join('')}
+    <p class="sem-nota">A etiqueta compara com a última vez no mesmo local.</p>
+  </div>` : '';
 
-    <div class="bi-stats">
-      <div class="bi-stat"><span class="bi-stat-value">${formatBRL(totalGeralBI)}</span><span class="bi-stat-label">Total vendido</span></div>
-      <div class="bi-stat"><span class="bi-stat-value">${qtdComandas}</span><span class="bi-stat-label">Comandas</span></div>
-      <div class="bi-stat"><span class="bi-stat-value">${formatBRL(ticketMedio)}</span><span class="bi-stat-label">Ticket médio</span></div>
-      <div class="bi-stat"><span class="bi-stat-value">${pratosVendidos}</span><span class="bi-stat-label">Pratos vendidos</span></div>
+  // Tierlist: 5 primeiros visíveis, o resto num "ver todos"
+  const linhaTier = t => `<div class="ind-tier-row"><span class="sem-tier t-${t.tier}">${t.tier}</span><span class="ind-tier-nome">${escapeHtml(t.nome)}</span><span class="ind-tier-q">×${formatNum(t.qtd, 0)}</span><span class="ind-tier-v">${formatBRL(t.total)}</span><span class="ind-tier-p">${formatNum(t.pct, 0)}%</span></div>`;
+  const tierHTML = `<div class="card">
+    <div class="bi-section-title">Tierlist do cardápio</div>
+    <div class="sem-tiers-leg">
+      <span><span class="sem-tier t-S">S</span>primeira metade da receita</span>
+      <span><span class="sem-tier t-A">A</span>até 80%</span>
+      <span><span class="sem-tier t-B">B</span>até 95%</span>
+      <span><span class="sem-tier t-C">C</span>o resto</span>
     </div>
+    ${tx.slice(0, 5).map(linhaTier).join('')}
+    ${tx.length > 5 ? `<details class="ind-mais"><summary>Ver os outros ${tx.length - 5} itens</summary>${tx.slice(5).map(linhaTier).join('')}</details>` : ''}
+  </div>`;
 
-    <div class="card">
-      <div class="bi-section-title">Vendas por dia / evento</div>
-      ${eventosHTML}
-    </div>
+  // Formas de pagamento: participação e ticket médio de cada forma
+  const porComandaPag = new Map(); // pagamento -> { total, n }
+  const comandasVistas = new Map();
+  dadosFiltrados.forEach(row => {
+    const ch = chaveDaComanda(row);
+    const c = comandasVistas.get(ch) || { total: 0, pagamento: row.pagamento || 'Não informado' };
+    c.total += Number(row.valor_total) || 0;
+    comandasVistas.set(ch, c);
+  });
+  comandasVistas.forEach(c => {
+    const p = porComandaPag.get(c.pagamento) || { total: 0, n: 0 };
+    p.total += c.total; p.n += 1;
+    porComandaPag.set(c.pagamento, p);
+  });
+  const maxPag = Math.max(1, ...r.pagamentos.map(p => p[1]));
+  const pagHTML = `<div class="card">
+    <div class="bi-section-title">Formas de pagamento</div>
+    ${r.pagamentos.map(([nome, v]) => {
+      const c = porComandaPag.get(nome);
+      return `<div class="bi-bar-row">
+        <div class="bi-bar-label"><span class="bi-bar-name">${escapeHtml(nome)} · ${formatPct(r.total ? v / r.total * 100 : 0)}</span><span class="bi-bar-value">${formatBRL(v)}${c && c.n ? ' · ticket ' + formatBRL(c.total / c.n) : ''}</span></div>
+        <div class="bi-bar-track"><div class="bi-bar-fill" style="width:${Math.max(4, v / maxPag * 100)}%"></div></div>
+      </div>`;
+    }).join('')}
+  </div>`;
 
-    <div class="card">
-      <div class="bi-section-title">Ticket médio por forma de pagamento</div>
-      ${barrasHTML(ticketPorPagamento, maxTicketPagamento)}
-    </div>
+  const acoesHTML = `<div class="ind-acoes">
+    <button class="save-btn ind-btn-alt" id="biSemanasBtn">📈 Comparar semanas X × Y</button>
+    <button class="save-btn" id="biIABtn">✨ Análise com IA</button>
+  </div>
+  <p class="sem-nota">Os dois abrem o acompanhamento semanal já no evento e na semana da data mais recente escolhida.</p>`;
 
-    <div class="card">
-      <div class="bi-section-title">Formas de pagamento (total)</div>
-      ${barrasHTML(porPagamento, maxPagamento)}
-    </div>
-
-    <div class="card">
-      <div class="bi-section-title">Mais vendidos × parados</div>
-      <div class="bi-two-col">
-        <div>
-          <div class="bi-mini-title">🔥 Mais vendidos</div>
-          ${maisVendidosHTML}
-        </div>
-        <div>
-          <div class="bi-mini-title">🐌 Parados</div>
-          ${paradosHTML}
-        </div>
-      </div>
-    </div>
-  `;
+  wrap.innerHTML = toolbar + filtroHTML + `<div class="card ind-frase">${frase}</div>` + kpisHTML + eventosHTML + tierHTML + pagHTML + acoesHTML +
+    `<p class="sem-nota">Comanda = ID da comanda; sem ID, data + local + número; linha sem número nem ID conta como venda avulsa. Bebida = categoria Bebidas no Menu ou nome de bebida. O local "Teste" fica fora.</p>`;
   document.getElementById('biRefreshBtn').addEventListener('click', () => loadBI(true));
+  const abrirSemanal = ia => {
+    const datas = eventos.map(e => e.data).sort();
+    semLocal = biLocalSelecionado;
+    semX = datas.length ? inicioSemana(datas[datas.length - 1]) : null;
+    semY = null;
+    showView('semanal');
+    if (ia) setTimeout(() => { const a = document.getElementById('semAnalise'); if (a) a.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 400);
+  };
+  document.getElementById('biSemanasBtn').addEventListener('click', () => abrirSemanal(false));
+  document.getElementById('biIABtn').addEventListener('click', () => abrirSemanal(true));
   ligarEventosFiltroData();
 }
 
@@ -3808,17 +3814,27 @@ function formatDataBR(iso){ const p = iso.split('-'); return `${p[2]}/${p[1]}/${
 function rotuloSemana(seg){ return `${formatDataCurta(seg)} a ${formatDataBR(somarDias(seg, 6))}`; }
 function diaSemanaCurto(iso){ return DIAS_SEMANA_CURTO[isoParaUTC(iso).getUTCDay()]; }
 
-const REGEX_BEBIDA = /\b(refri|refrigerante|coca|guarana|fanta|sprite|agua|suco|cerveja|heineken|chopp|cha|lata|bebida|drink|soda|kombucha)\b/;
+const REGEX_BEBIDA = /\b(refri|refrigerante|coca|guarana|fanta|sprite|agua|suco|cerveja|heineken|chopp|cha|lata|bebida|drink|soda|kombucha|h2oh|schweppes|mate|soju|vinho)\b/;
 function ehBebida(nome){
   const doMenu = encontrarNoMenu(nome);
   if (doMenu && doMenu.categoria) return normalizarTexto(doMenu.categoria) === 'bebidas';
   return REGEX_BEBIDA.test(normalizarTexto(nome));
 }
 
+// v20: mesma regra em Indicadores, Acom. Semanal e no e-mail semanal.
+// Comanda = ID quando existe; sem ID, data + local + número; linha sem número
+// nem ID é venda avulsa (uma comanda por linha).
 function chaveDaComanda(row){
-  return (row.comanda_id && String(row.comanda_id).startsWith('cmd_'))
-    ? String(row.comanda_id)
-    : [row.registrado_em, row.cliente, row.pagamento, row.numero_comanda || ''].join('|');
+  if (row.comanda_id && String(row.comanda_id).startsWith('cmd_')) return String(row.comanda_id);
+  const numero = String(row.numero_comanda == null ? '' : row.numero_comanda).trim();
+  if (numero) return ['n', extrairDataEvento(row.data_evento) || 'sem data', row.local || 'sem local', numero].join('|');
+  return 'avulsa|' + row._linha;
+}
+
+// v20: padroniza o local, tira o local "Teste" e numera as linhas (para a venda avulsa).
+function prepararDadosBI(dados){
+  dados.forEach((r, i) => { if (r) { if (r.local) r.local = localPadrao(r.local); r._linha = i; } });
+  return dados.filter(r => r && normalizarTexto(r.local || '') !== 'teste');
 }
 
 // Indicadores de um conjunto de linhas (uma semana já filtrada pelo evento).
@@ -3927,8 +3943,7 @@ async function loadSemanal(force){
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const dados = await res.json();
     if (!Array.isArray(dados)) throw new Error((dados && dados.erro === 'login') ? 'sua sessão terminou; entre de novo com a conta Google' : 'resposta inesperada');
-    dados.forEach(r => { if (r && r.local) r.local = localPadrao(r.local); });
-    biDados = dados;
+    biDados = prepararDadosBI(dados);
     biUltimaAtualizacao = new Date();
     renderSemanal(biDados);
   } catch(err){
