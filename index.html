@@ -145,8 +145,10 @@
   .save-btn:hover{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink);}
   .save-btn:disabled{opacity:.5;cursor:default;transform:none;}
 
-  .stamp-wrap{display:flex;justify-content:center;margin:18px 0;opacity:0;transform:scale(1.4) rotate(-8deg);transition:opacity .25s ease, transform .3s cubic-bezier(.2,1.6,.4,1);}
-  .stamp-wrap.show{opacity:1;transform:scale(1) rotate(-8deg);}
+  .stamp-wrap{display:flex;justify-content:center;margin:18px 0;opacity:0;transition:opacity .25s ease;}
+  .stamp-wrap .stamp{transform:scale(1.4) rotate(-8deg);transition:transform .3s cubic-bezier(.2,1.6,.4,1);}
+  .stamp-wrap.show{opacity:1;}
+  .stamp-wrap.show .stamp{transform:scale(1) rotate(-8deg);}
   .stamp{border:3px solid var(--green);color:var(--green);font-family:'Titan One',cursive;font-size:15px;padding:8px 18px;border-radius:8px;letter-spacing:.03em;}
 
   .lote-btn{
