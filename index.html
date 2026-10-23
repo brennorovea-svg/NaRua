@@ -342,6 +342,15 @@
   .fs-tag.ok{background:var(--green);color:#fff;} .fs-tag.livre{background:var(--orange);color:var(--ink);} .fs-tag.off{background:#ddd;color:var(--ink);}
   .fs-chk{display:flex;align-items:center;gap:8px;text-transform:none;font-size:13.5px;color:var(--ink);letter-spacing:0;margin:4px 0 0;}
   .fs-chk input{width:auto;margin:0;}
+  .fs-visuais{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+  .fs-visual{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;margin:0;padding:8px 6px;border:2px solid var(--ink);border-radius:12px;background:#1d1d1d;cursor:pointer;text-transform:none;letter-spacing:0;}
+  .fs-visual input{position:absolute;opacity:0;pointer-events:none;}
+  .fs-visual img{width:100%;height:78px;object-fit:contain;}
+  .fs-visual span{font-family:'Titan One',cursive;font-size:13px;color:var(--paper);text-align:center;line-height:1.15;}
+  .fs-visual small{display:block;font-family:'Poppins',sans-serif;font-size:10px;color:#bdb6a8;}
+  .fs-visual:has(input:checked){border-color:var(--orange);box-shadow:0 0 0 3px var(--orange);}
+  .fs-visual:has(input:checked)::after{content:"✓";position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;background:var(--orange);color:var(--ink);border:2px solid var(--ink);font:800 12px/18px 'Poppins',sans-serif;text-align:center;}
+  .fs-visual:has(input:disabled){opacity:.4;cursor:not-allowed;}
 
   .menu-item{border:2px solid var(--ink);border-radius:10px;padding:10px;margin-bottom:10px;background:#fffdf7;}
   .menu-item.esgotado{background:#fbecea;}
@@ -838,7 +847,12 @@
       <div class="field-row" style="margin-top:12px"><div class="field"><label for="fsCada">Aparece a cada (acessos)</label><input type="number" id="fsCada" min="1" max="50" value="5"></div><div class="field"><label for="fsLimite">Limite por dia</label><input type="number" id="fsLimite" min="0" max="500" value="20"></div></div>
       <div class="field-row"><div class="field"><label for="fsMensagem">Mensagem</label><input type="text" id="fsMensagem" maxlength="80" value="Você achou o food secreto!!"></div></div>
       <div class="field-row"><div class="field"><label for="fsPremio">Prêmio</label><input type="text" id="fsPremio" maxlength="60" value="Vale 1 Guioza!!!!"></div></div>
-      <div class="field-row"><div class="field"><label for="fsTema">Visual</label><select id="fsTema"><option value="">Padrão (Marcia e Lynda na cabine)</option><option value="odd">ODD (só em evento especial)</option></select></div></div>
+      <label style="margin-top:4px">Visual</label>
+      <div class="fs-visuais" id="fsTema" role="radiogroup" aria-label="Visual do food">
+        <label class="fs-visual"><input type="radio" name="fsTema" value=""><img src="food-secreto/padrao.png" alt=""><span>Food padrão</span></label>
+        <label class="fs-visual"><input type="radio" name="fsTema" value="aniversario"><img src="food-secreto/aniversario.png" alt=""><span>Aniversário</span></label>
+        <label class="fs-visual"><input type="radio" name="fsTema" value="odd"><img src="food-secreto/odd.png" alt=""><span>ODD</span></label>
+      </div>
       <div class="btn-row"><button class="btn-primary" type="button" id="fsSalvarBtn">Salvar regras</button></div>
       <div class="save-msg" id="fsSalvarMsg"></div>
       <p class="fs-nota">"Todo dia" é o food padrão. Uma regra de evento vale só naquele dia e local e passa na frente da "Todo dia".</p>
@@ -1112,7 +1126,7 @@ function renderFoodSecreto(){
   const pct = regra && regra.limite ? Math.min(100, Math.round(daRegra.length / regra.limite * 100)) : 0;
   const onde = regra ? (regra.data ? (d.eventoHoje && (d.eventoHoje.evento || d.eventoHoje.local)) || regra.local : 'Todo dia') : '';
   document.getElementById('fsStatus').innerHTML = regra
-    ? `<div class="fs-hero"><span class="big">Food secreto ligado hoje<small>${escapeHtml(onde)} · ${escapeHtml(regra.premio)} · a cada ${regra.cada} acessos${regra.tema === 'odd' ? ' · visual ODD' : ''}</small></span></div>
+    ? `<div class="fs-hero"><span class="big">Food secreto ligado hoje<small>${escapeHtml(onde)} · ${escapeHtml(regra.premio)} · a cada ${regra.cada} acessos${regra.tema === 'odd' ? ' · visual ODD' : regra.tema === 'aniversario' ? ' · visual Aniversário' : ''}</small></span></div>
        <div class="fs-stats"><div class="fs-stat"><b>${daRegra.length}</b><span>Apareceu</span></div><div class="fs-stat"><b>${usados}</b><span>Resgatados</span></div><div class="fs-stat"><b>${restam}</b><span>Restam</span></div></div>
        <div class="fs-barra"><i style="width:${pct}%"></i></div>
        <p class="fs-nota">Limite de hoje: ${regra.limite}. Quando acabar, o food some do site sozinho.${regra.soltar ? ' Soltos agora: ' + regra.soltar + '.' : ''}</p>
@@ -1131,7 +1145,7 @@ function renderFoodSecreto(){
 
   const regras = d.regras || [];
   document.getElementById('fsRegras').innerHTML = regras.length
-    ? '<ul class="fs-lista">' + regras.map(r => `<li><button class="fs-regra" type="button" data-fs-chave="${escapeHtml(fsChave(r.data, r.local))}"><b>${escapeHtml(r.data ? fsDataCurta(r.data) + ' · ' + (r.evento || r.local) : 'Todo dia')}</b><br>${escapeHtml(r.premio)} · a cada ${r.cada} · ${r.limite}/dia${r.tema === 'odd' ? ' · ODD' : ''}</button><span class="fs-tag ${r.ligado ? 'ok' : 'off'}">${r.ligado ? 'Ligado' : 'Desligado'}</span></li>`).join('') + '</ul>'
+    ? '<ul class="fs-lista">' + regras.map(r => `<li><button class="fs-regra" type="button" data-fs-chave="${escapeHtml(fsChave(r.data, r.local))}"><b>${escapeHtml(r.data ? fsDataCurta(r.data) + ' · ' + (r.evento || r.local) : 'Todo dia')}</b><br>${escapeHtml(r.premio)} · a cada ${r.cada} · ${r.limite}/dia${r.tema === 'odd' ? ' · ODD' : r.tema === 'aniversario' ? ' · Aniversário 🎈' : ''}</button><span class="fs-tag ${r.ligado ? 'ok' : 'off'}">${r.ligado ? 'Ligado' : 'Desligado'}</span></li>`).join('') + '</ul>'
     : '<div class="agenda-vazio">Nenhuma regra ainda. Configure acima e salve.</div>';
   document.querySelectorAll('[data-fs-chave]').forEach(b => b.addEventListener('click', () => { sel.value = b.dataset.fsChave; fsPreencherForm(); sel.scrollIntoView({ behavior: 'smooth', block: 'center' }); }));
 
@@ -1150,9 +1164,9 @@ function fsPreencherForm(){
   document.getElementById('fsLimite').value = r ? r.limite : 20;
   document.getElementById('fsMensagem').value = r ? r.mensagem : 'Você achou o food secreto!!';
   document.getElementById('fsPremio').value = r ? r.premio : 'Vale 1 Guioza!!!!';
-  const tema = document.getElementById('fsTema');
-  tema.querySelector('option[value="odd"]').disabled = !op.especial;
-  tema.value = r && r.tema && op.especial ? r.tema : '';
+  const radios = document.querySelectorAll('input[name="fsTema"]');
+  const temaAtual = r && r.tema ? r.tema : '';
+  radios.forEach(x => { x.checked = x.value === temaAtual; });
   document.getElementById('fsSalvarMsg').textContent = '';
 }
 
@@ -1166,7 +1180,7 @@ async function salvarFoodSecreto(){
     ligado: document.getElementById('fsLigado').checked,
     cada: document.getElementById('fsCada').value, limite: document.getElementById('fsLimite').value,
     mensagem: document.getElementById('fsMensagem').value.trim(), premio: document.getElementById('fsPremio').value.trim(),
-    tema: document.getElementById('fsTema').value
+    tema: (document.querySelector('input[name="fsTema"]:checked') || {}).value || ''
   };
   if (!regra.premio) { msg.className = 'save-msg erro'; msg.textContent = 'Escreva o prêmio.'; return; }
   btn.disabled = true; btn.textContent = 'Salvando...'; msg.textContent = ''; msg.className = 'save-msg';
