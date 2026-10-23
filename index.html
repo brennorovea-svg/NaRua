@@ -326,7 +326,7 @@
   .fs-barra i{display:block;height:100%;background:var(--orange);}
   .fs-nota{font-size:12px;color:var(--ink-soft);margin:8px 0 0;}
   .fs-soltar{display:flex;gap:8px;margin-top:12px;}
-  .fs-soltar select{flex:0 0 96px;}
+  .fs-soltar select{flex:0 0 128px;}
   .fs-soltar button{flex:1;padding:12px;border-radius:10px;border:2px solid var(--ink);background:var(--red);color:#fff;font-family:'Titan One',cursive;font-size:16px;cursor:pointer;box-shadow:3px 3px 0 var(--ink);}
   .fs-valida{display:flex;gap:8px;} .fs-valida input{flex:1;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;}
   .fs-resultado{margin-top:10px;border:2px solid var(--ink);border-radius:10px;padding:10px 12px;font-size:13.5px;color:var(--ink);}
@@ -1129,13 +1129,16 @@ function renderFoodSecreto(){
     ? `<div class="fs-hero"><span class="big">Food secreto ligado hoje<small>${escapeHtml(onde)} · ${escapeHtml(regra.premio)} · a cada ${regra.cada} acessos${regra.tema === 'odd' ? ' · visual ODD' : regra.tema === 'aniversario' ? ' · visual Aniversário' : ''}</small></span></div>
        <div class="fs-stats"><div class="fs-stat"><b>${daRegra.length}</b><span>Apareceu</span></div><div class="fs-stat"><b>${usados}</b><span>Resgatados</span></div><div class="fs-stat"><b>${restam}</b><span>Restam</span></div></div>
        <div class="fs-barra"><i style="width:${pct}%"></i></div>
-       <p class="fs-nota">Limite de hoje: ${regra.limite}. Quando acabar, o food some do site sozinho.${regra.soltar ? ' Soltos agora: ' + regra.soltar + '.' : ''}</p>
-       <div class="fs-soltar"><select id="fsSoltarN"><option>1</option><option selected>3</option><option>5</option><option>10</option></select><button type="button" id="fsSoltarBtn">🚀 Soltar o food agora</button></div>
-       <p class="fs-nota">Os próximos visitantes do cardápio veem o food na hora, sem esperar a regra dos acessos.</p>
+       <p class="fs-nota">Limite de hoje: ${regra.limite}. Quando acabar, o food some do site sozinho.${regra.soltar ? ' Ainda soltos: ' + regra.soltar + (regra.soltar === 1 ? ' pessoa' : ' pessoas') + ' para ver o food.' : ''}</p>
+       <label for="fsSoltarN" style="margin-top:14px">Soltar o food agora para quantas pessoas?</label>
+       <div class="fs-soltar" style="margin-top:0"><select id="fsSoltarN"><option value="1">1 pessoa</option><option value="3" selected>3 pessoas</option><option value="5">5 pessoas</option><option value="10">10 pessoas</option></select><button type="button" id="fsSoltarBtn">🚀 Soltar para 3 pessoas</button></div>
+       <p class="fs-nota">As próximas pessoas que abrirem o cardápio veem o food na hora, sem esperar os ${regra.cada} acessos. Cada uma ganha um cupom (conta no limite do dia).</p>
        <div class="save-msg" id="fsSoltarMsg"></div>`
     : `<div class="fs-hero"><span class="big">Food secreto desligado hoje<small>Nenhuma regra ligada para hoje (${fsDataCurta(hoje)}). Ligue "Todo dia" ou a regra do evento abaixo.</small></span></div>`;
   const soltar = document.getElementById('fsSoltarBtn');
   if (soltar) soltar.addEventListener('click', () => soltarFoodSecreto(regra.id));
+  const soltarN = document.getElementById('fsSoltarN');
+  if (soltarN) soltarN.addEventListener('change', () => { const q = soltarN.value; soltar.textContent = '🚀 Soltar para ' + q + (q === '1' ? ' pessoa' : ' pessoas'); });
 
   const sel = document.getElementById('fsQuando'), atual = sel.value;
   const ops = fsOpcoesQuando();
@@ -1200,7 +1203,7 @@ async function soltarFoodSecreto(id){
     await fsPost({ action: 'soltarFoodSecreto', id, n });
     await loadFoodSecreto();
     const m = document.getElementById('fsSoltarMsg');
-    m.className = 'save-msg ok'; m.textContent = '🚀 Solto! Os próximos ' + n + ' visitantes do cardápio veem o food.';
+    m.className = 'save-msg ok'; m.textContent = '🚀 Solto! As próximas ' + n + (n === '1' ? ' pessoa que abrir' : ' pessoas que abrirem') + ' o cardápio veem o food.';
   } catch(err){ msg.className = 'save-msg erro'; msg.textContent = 'Não soltou: ' + err.message; }
 }
 
