@@ -239,6 +239,7 @@
   .ind-frase{font-family:'Poppins',sans-serif;font-size:14px;line-height:1.5;color:var(--ink);}
   .ind-sub{font-weight:500;font-size:11.5px;color:var(--ink-soft);}
   .sem-kpi.ind-largo{grid-column:1 / -1;}
+  .ind-liquido{font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink);border-top:1px dashed var(--line);margin-top:4px;padding:5px 0 3px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
   .ind-tier-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-family:'Poppins',sans-serif;font-size:13px;color:var(--ink);}
   .ind-tier-row .sem-tier{width:24px;height:24px;font-size:11.5px;flex-shrink:0;}
   .ind-tier-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -3384,7 +3385,7 @@ function renderBI(dados){
   const ry = anterior ? anterior.r : null;
   const delta = (campo, pontos) => {
     if (!umEvento) return `<span class="sem-kpi-y"></span>`;
-    if (!ry) return `<span class="sem-delta neutro">primeira vez no local</span>`;
+    if (!ry) return campo === 'total' ? `<span class="sem-delta neutro">primeira vez no local</span>` : `<span class="sem-kpi-y"></span>`;
     return pontos ? tagPontos(r[campo] - ry[campo]) : tagVariacao(r[campo], ry[campo]);
   };
   const kpi = (rotulo, campo, fmt, extra, pontos) => `<div class="sem-kpi ${extra || ''}">
@@ -3392,7 +3393,12 @@ function renderBI(dados){
       <span class="sem-kpi-val">${fmt(r[campo])}</span>
       ${delta(campo, pontos)}
       <span class="sem-kpi-y">${ry ? 'antes: ' + fmt(ry[campo]) : (umEvento ? '' : (campo === 'total' ? eventos.length + (eventos.length === 1 ? ' evento' : ' eventos') : ''))}</span>
+      ${campo === 'total' ? liquidoHTML : ''}
     </div>`;
+  const repasse = r.total - r.liquido;
+  const liquidoHTML = repasse > 0.005
+    ? `<span class="ind-liquido">Líquido após organizador: <b>${formatBRL(r.liquido)}</b> (−${formatBRL(repasse)})${ry && ry.liquido ? ' ' + tagVariacao(r.liquido, ry.liquido) : ''}</span>`
+    : '';
   const kpisHTML = `<div class="card">
     <div class="bi-section-title">Indicadores${umEvento && ry ? ` <span class="ind-sub">contra ${escapeHtml(umEvento.local)} em ${formatDataCurta(anterior.data)}</span>` : ''}</div>
     <div class="sem-kpis">
@@ -3481,7 +3487,7 @@ function renderBI(dados){
   <p class="sem-nota">Os dois abrem o acompanhamento semanal já no evento e na semana da data mais recente escolhida.</p>`;
 
   wrap.innerHTML = toolbar + filtroHTML + `<div class="card ind-frase">${frase}</div>` + kpisHTML + eventosHTML + tierHTML + pagHTML + acoesHTML +
-    `<p class="sem-nota">Comanda = ID da comanda; sem ID, data + local + número; linha sem número nem ID conta como venda avulsa. Bebida = categoria Bebidas no Menu ou nome de bebida. O local "Teste" fica fora.</p>`;
+    `<p class="sem-nota">Comanda = ID da comanda; sem ID, data + local + número; linha sem número nem ID conta como venda avulsa. Bebida = categoria Bebidas no Menu ou nome de bebida. O local "Teste" fica fora. Líquido após organizador = valor × (1 − % Acréscimo da linha).</p>`;
   document.getElementById('biRefreshBtn').addEventListener('click', () => loadBI(true));
   const abrirSemanal = ia => {
     const datas = eventos.map(e => e.data).sort();
@@ -3869,11 +3875,14 @@ function resumoSemana(linhas){
   const eventos = new Map();  // 'data|local' -> { data, local, total, comandas:Set }
   const itens = new Map();    // nome normalizado -> { nome, qtd, total }
   const pagamentos = new Map();
-  let total = 0, qtdItens = 0;
+  let total = 0, qtdItens = 0, liquido = 0;
   linhas.forEach(row => {
     const valor = Number(row.valor_total) || 0;
     const qtd = Number(row.quantidade) || 0;
     total += valor; qtdItens += qtd;
+    // v22: % Acréscimo = parte do organizador do evento; líquido = o que fica com a Narua.
+    const pctOrg = Math.min(100, Math.max(0, Number(String(row.acrescimo_pct == null ? '' : row.acrescimo_pct).replace(',', '.')) || 0));
+    liquido += valor * (1 - pctOrg / 100);
     const ch = chaveDaComanda(row);
     const c = comandas.get(ch) || { total: 0, itens: 0, bebida: false, pagamento: row.pagamento || 'Não informado' };
     c.total += valor; c.itens += qtd;
@@ -3902,7 +3911,7 @@ function resumoSemana(linhas){
     if (c.bebida) comBebida++;
   });
   return {
-    total, nComandas, qtdItens,
+    total, nComandas, qtdItens, liquido,
     ticket: nComandas ? total / nComandas : 0,
     itensPorComanda: nComandas ? qtdItens / nComandas : 0,
     pctBebida: nComandas ? comBebida / nComandas * 100 : 0,
