@@ -2043,7 +2043,33 @@ function handleFieldChange(e){
     if (!item) return;
     if (field === 'nome') item.nome = t.value;
     else item[field] = parseFloat(t.value) || 0;
-    item.autoPreenchido = false; // qualquer edição manual invalida o preenchimento automático
+    // Valor digitado à mão vence o automático. Ao sair do campo de nome ou
+    // quantidade (comanda manual ou lida por foto), item sem valor ou com
+    // valor automático recebe o preço do cardápio × quantidade.
+    if (field === 'valor_total') item.autoPreenchido = false;
+    if (e.type === 'change' && (field === 'nome' || field === 'quantidade') && (!item.valor_total || item.autoPreenchido)) {
+      const novo = tentarPreencherAutomatico({ ...item, valor_total: 0 });
+      if (novo.autoPreenchido) {
+        item.valor_total = novo.valor_total;
+        item.autoPreenchido = true;
+        // Redesenha depois que o foco já foi para o próximo campo (Tab) e o devolve.
+        setTimeout(() => {
+          const ativo = document.activeElement;
+          const foco = ativo && ativo.getAttribute ? [ativo.getAttribute('data-field'), ativo.getAttribute('data-item') || '', ativo.getAttribute('data-comanda') || ''] : null;
+          renderComandas();
+          if (foco && foco[0]) {
+            const sel = `[data-field="${foco[0]}"][data-comanda="${foco[2]}"]` + (foco[1] ? `[data-item="${foco[1]}"]` : ':not([data-item])');
+            const el = comandasList.querySelector(sel);
+            if (el) el.focus();
+          }
+        }, 0);
+        renderTotalGeral();
+        salvarRascunho();
+        if (loteState) resetarTelaDeLotes();
+        return;
+      }
+      if (item.autoPreenchido) { item.valor_total = 0; item.autoPreenchido = false; }
+    }
     const subtotalEl = card.querySelector('.subtotal-row span:last-child');
     const subtotal = comanda.itens.reduce((s,i)=> s + (i.valor_total||0), 0);
     subtotalEl.textContent = formatBRL(subtotal);
