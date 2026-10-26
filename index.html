@@ -320,7 +320,10 @@
   .fs-hero{display:flex;align-items:center;gap:12px;}
   .fs-hero .big{font-family:'Titan One',cursive;font-size:19px;flex:1;line-height:1.2;}
   .fs-hero .big small{display:block;font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-soft);font-weight:600;}
-  .fs-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
+  .fs-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;}
+  .fs-teste{margin-top:10px;border:2px dashed var(--ink);border-radius:10px;padding:10px 12px;font-size:13px;background:#fff;word-break:break-all;}
+  .fs-teste a{font-weight:700;color:var(--ink);}
+  .fs-tag.alerta{background:#fde8e8;color:var(--red);}
   .fs-stat{border:2px solid var(--ink);border-radius:10px;padding:8px;text-align:center;background:#fff;}
   .fs-stat b{display:block;font-family:'Titan One',cursive;font-size:22px;}
   .fs-stat span{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:600;}
@@ -846,7 +849,7 @@
     <div class="card">
       <div class="field-row"><div class="field"><label for="fsQuando">Quando</label><select id="fsQuando"></select></div></div>
       <label class="fs-chk"><input type="checkbox" id="fsLigado"> Ligado</label>
-      <div class="field-row" style="margin-top:12px"><div class="field"><label for="fsCada">Aparece a cada (acessos)</label><input type="number" id="fsCada" min="1" max="50" value="5"></div><div class="field"><label for="fsLimite">Limite por dia</label><input type="number" id="fsLimite" min="0" max="500" value="20"></div></div>
+      <div class="field-row" style="margin-top:12px"><div class="field"><label for="fsCada">Aparece a cada (acessos de todos)</label><input type="number" id="fsCada" min="1" max="50" value="5"></div><div class="field"><label for="fsLimite">Limite por dia</label><input type="number" id="fsLimite" min="0" max="500" value="20"></div></div>
       <div class="field-row"><div class="field"><label for="fsMensagem">Mensagem</label><input type="text" id="fsMensagem" maxlength="80" value="Você achou o food secreto!!"></div></div>
       <div class="field-row"><div class="field"><label for="fsPremio">Prêmio</label><input type="text" id="fsPremio" maxlength="60" value="Vale 1 Guioza!!!!"></div></div>
       <label style="margin-top:4px">Visual</label>
@@ -855,8 +858,9 @@
         <label class="fs-visual"><input type="radio" name="fsTema" value="aniversario"><img src="food-secreto/aniversario.png" alt=""><span>Aniversário</span></label>
         <label class="fs-visual"><input type="radio" name="fsTema" value="odd"><img src="food-secreto/odd.png" alt=""><span>ODD</span></label>
       </div>
-      <div class="btn-row"><button class="btn-primary" type="button" id="fsSalvarBtn">Salvar regras</button></div>
+      <div class="btn-row"><button class="btn-primary" type="button" id="fsSalvarBtn">Salvar regras</button><button class="btn-secondary" type="button" id="fsTesteBtn">🧪 Testar no meu celular</button></div>
       <div class="save-msg" id="fsSalvarMsg"></div>
+      <div id="fsTesteOut"></div>
       <p class="fs-nota">"Todo dia" é o food padrão. Uma regra de evento vale só naquele dia e local e passa na frente da "Todo dia".</p>
     </div>
 
@@ -1131,9 +1135,9 @@ function renderFoodSecreto(){
   const onde = regra ? (regra.data ? (d.eventoHoje && (d.eventoHoje.evento || d.eventoHoje.local)) || regra.local : 'Todo dia') : '';
   document.getElementById('fsStatus').innerHTML = regra
     ? `<div class="fs-hero"><span class="big">Food secreto ligado hoje<small>${escapeHtml(onde)} · ${escapeHtml(regra.premio)} · a cada ${regra.cada} acessos${regra.tema === 'odd' ? ' · visual ODD' : regra.tema === 'aniversario' ? ' · visual Aniversário' : ''}</small></span></div>
-       <div class="fs-stats"><div class="fs-stat"><b>${daRegra.length}</b><span>Apareceu</span></div><div class="fs-stat"><b>${usados}</b><span>Resgatados</span></div><div class="fs-stat"><b>${restam}</b><span>Restam</span></div></div>
+       <div class="fs-stats"><div class="fs-stat"><b>${d.acessos || 0}</b><span>Acessos</span></div><div class="fs-stat"><b>${daRegra.length}</b><span>Apareceu</span></div><div class="fs-stat"><b>${usados}</b><span>Resgatados</span></div><div class="fs-stat"><b>${restam}</b><span>Restam</span></div></div>
        <div class="fs-barra"><i style="width:${pct}%"></i></div>
-       <p class="fs-nota">Limite de hoje: ${regra.limite}. Quando acabar, o food some do site sozinho.${regra.soltar ? ' Ainda soltos: ' + regra.soltar + (regra.soltar === 1 ? ' pessoa' : ' pessoas') + ' para ver o food.' : ''}</p>
+       <p class="fs-nota">Acessos = visitas ao cardápio hoje, de todo mundo junto. O mesmo celular conta 1 vez a cada 30 min, então atualizar a página não força o food. Cada celular vê o food no máximo 1 vez por dia. Limite de hoje: ${regra.limite}. Quando acabar, o food some do site sozinho.${regra.soltar ? ' Ainda soltos: ' + regra.soltar + (regra.soltar === 1 ? ' pessoa' : ' pessoas') + ' para ver o food.' : ''}</p>
        <label for="fsSoltarN" style="margin-top:14px">Soltar o food agora para quantas pessoas?</label>
        <div class="fs-soltar" style="margin-top:0"><select id="fsSoltarN"><option value="1">1 pessoa</option><option value="3" selected>3 pessoas</option><option value="5">5 pessoas</option><option value="10">10 pessoas</option></select><button type="button" id="fsSoltarBtn">🚀 Soltar para 3 pessoas</button></div>
        <p class="fs-nota">As próximas pessoas que abrirem o cardápio veem o food na hora, sem esperar os ${regra.cada} acessos. Cada uma ganha um cupom (conta no limite do dia).</p>
@@ -1158,7 +1162,7 @@ function renderFoodSecreto(){
 
   const cupons = (d.cupons || []).slice().reverse();
   document.getElementById('fsCupons').innerHTML = cupons.length
-    ? '<ul class="fs-lista">' + cupons.map(c => `<li><code>${escapeHtml(c.codigo)}</code><span>${escapeHtml(c.gerado)}</span><span class="fs-tag ${c.status === 'Usado' ? 'ok' : 'livre'}">${escapeHtml(c.status)}</span></li>`).join('') + '</ul><p class="fs-nota">Tudo fica na aba "Food secreto cupons" da planilha.</p>'
+    ? '<ul class="fs-lista">' + cupons.map(c => `<li><code>${escapeHtml(c.codigo)}</code><span>${escapeHtml(c.gerado)}</span>${c.repetido ? '<span class="fs-tag alerta" title="Mais de um cupom hoje com a mesma marca de aparelho">⚠️ mesmo aparelho?</span>' : ''}<span class="fs-tag ${c.status === 'Usado' ? 'ok' : 'livre'}">${escapeHtml(c.status)}</span></li>`).join('') + '</ul><p class="fs-nota">Tudo fica na aba "Food secreto cupons" da planilha.' + (cupons.some(c => c.repetido) ? ' ⚠️ = mais de um cupom com o mesmo modelo de celular (pode ser a mesma pessoa ou só celulares iguais); confira no balcão.' : '') + '</p>'
     : '<div class="agenda-vazio">Nenhum cupom hoje.</div>';
 }
 
@@ -1211,6 +1215,24 @@ async function soltarFoodSecreto(id){
   } catch(err){ msg.className = 'save-msg erro'; msg.textContent = 'Não soltou: ' + err.message; }
 }
 
+// v29 (Apps Script v21): link de teste da equipe. Vale 30 min, mostra o food
+// com a regra escolhida e dá um código TESTE-XXXX que não vale nem gasta o limite.
+async function testeFoodSecreto(){
+  const out = document.getElementById('fsTesteOut'), btn = document.getElementById('fsTesteBtn');
+  const op = fsOpcoesQuando().find(o => o.chave === document.getElementById('fsQuando').value);
+  const r = op && (fsDados.regras || []).find(x => fsChave(x.data, x.local) === op.chave);
+  if (!r) { out.innerHTML = '<div class="fs-teste">Salve esta regra antes de testar.</div>'; return; }
+  btn.disabled = true;
+  try {
+    const j = await fsPost({ action: 'testeFoodSecreto', id: r.id });
+    const link = 'https://naruafoodtruck.com.br/?foodsecreto=' + encodeURIComponent(j.token) + '#cardapio';
+    out.innerHTML = `<div class="fs-teste">🧪 Link de teste (vale ${j.minutos} min, não gasta cupom):<br><a href="${escapeHtml(link)}" target="_blank" rel="noopener">${escapeHtml(link)}</a><div class="btn-row" style="margin-top:8px"><button class="btn-secondary" type="button" id="fsTesteCopiar">Copiar link</button></div></div>`;
+    document.getElementById('fsTesteCopiar').addEventListener('click', e => { navigator.clipboard?.writeText(link).then(() => { e.target.textContent = 'Copiado ✓'; }); });
+  } catch(err){
+    out.innerHTML = '<div class="fs-teste">Não gerou o link: ' + escapeHtml(/desconhecida|v18/.test(err.message) ? 'publique o Apps Script v21 primeiro' : err.message) + '</div>';
+  } finally { btn.disabled = false; }
+}
+
 async function validarCupomFS(){
   const input = document.getElementById('fsCodigo'), out = document.getElementById('fsResultado'), btn = document.getElementById('fsValidarBtn');
   const codigo = input.value.trim();
@@ -1229,6 +1251,7 @@ async function validarCupomFS(){
 
 document.getElementById('fsQuando').addEventListener('change', fsPreencherForm);
 document.getElementById('fsSalvarBtn').addEventListener('click', salvarFoodSecreto);
+document.getElementById('fsTesteBtn').addEventListener('click', testeFoodSecreto);
 document.getElementById('fsValidarBtn').addEventListener('click', validarCupomFS);
 document.getElementById('fsCodigo').addEventListener('keydown', e => { if (e.key === 'Enter') validarCupomFS(); });
 
