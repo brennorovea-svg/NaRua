@@ -345,6 +345,19 @@
   .fs-lista .fs-regra{flex:1;cursor:pointer;background:none;border:0;text-align:left;font:inherit;color:inherit;padding:0;}
   .fs-tag{font-size:10px;font-weight:800;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:2px solid var(--ink);white-space:nowrap;}
   .fs-tag.ok{background:var(--green);color:#fff;} .fs-tag.livre{background:var(--orange);color:var(--ink);} .fs-tag.off{background:#ddd;color:var(--ink);}
+  /* v30: lista de códigos da regra (botão 🎟️ Códigos em Regras salvas) */
+  .fs-cod-btn{flex:0 0 auto;padding:6px 10px;border-radius:10px;border:2px solid var(--ink);background:var(--orange);color:var(--ink);font-family:'Poppins',sans-serif;font-weight:700;font-size:12px;cursor:pointer;box-shadow:2px 2px 0 var(--ink);white-space:nowrap;}
+  .fs-cod-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 4px;color:var(--ink);}
+  .fs-cod-lista{list-style:none;margin:8px 0 0;padding:0;}
+  .fs-cod-lista li{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 2px;border-top:1.5px dashed var(--line);color:var(--ink);}
+  .fs-cod-lista .n{width:24px;font-weight:800;color:var(--ink-soft);font-size:13px;}
+  .fs-cod-lista code{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:20px;letter-spacing:.04em;flex:1;}
+  .fs-cod-lista li.usado code{text-decoration:line-through;color:#9a9384;}
+  .fs-cod-lista li.saiu{cursor:pointer;}
+  .fs-cod-lista .fs-tag.res{background:#fff;color:var(--ink-soft);}
+  .fs-cod-lista .fs-marcar{flex-basis:100%;display:flex;gap:8px;}
+  .fs-cod-lista .fs-marcar button{flex:1;padding:9px;border-radius:10px;border:2px solid var(--ink);background:var(--green);color:#fff;font-weight:700;font-family:'Poppins',sans-serif;cursor:pointer;}
+  .fs-cod-lista .fs-marcar button.nao{background:#fff;color:var(--ink);}
   .fs-chk{display:flex;align-items:center;gap:8px;text-transform:none;font-size:13.5px;color:var(--ink);letter-spacing:0;margin:4px 0 0;}
   .fs-chk input{width:auto;margin:0;}
   .fs-visuais{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
@@ -925,6 +938,19 @@
   </div>
 </div>
 
+<!-- v30: códigos do food secreto de uma regra (para a cozinha conferir sem abrir o app no balcão) -->
+<div class="modal-bg" id="fsCodigosBg">
+  <div class="modal">
+    <h2 id="fsCodigosTitulo">Códigos</h2>
+    <p id="fsCodigosSub"></p>
+    <div id="fsCodigosCorpo"><div class="agenda-vazio">Carregando...</div></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" type="button" id="fsCodigosAtualizar">Atualizar</button>
+      <button class="btn-primary" type="button" id="fsCodigosFechar">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="fechamentoBg">
   <div class="modal">
     <h2>Ver o fechamento?</h2>
@@ -1156,13 +1182,14 @@ function renderFoodSecreto(){
 
   const regras = d.regras || [];
   document.getElementById('fsRegras').innerHTML = regras.length
-    ? '<ul class="fs-lista">' + regras.map(r => `<li><button class="fs-regra" type="button" data-fs-chave="${escapeHtml(fsChave(r.data, r.local))}"><b>${escapeHtml(r.data ? fsDataCurta(r.data) + ' · ' + (r.evento || r.local) : 'Todo dia')}</b><br>${escapeHtml(r.premio)} · a cada ${r.cada} · ${r.limite}/dia${r.tema === 'odd' ? ' · ODD' : r.tema === 'aniversario' ? ' · Aniversário 🎈' : ''}</button><span class="fs-tag ${r.ligado ? 'ok' : 'off'}">${r.ligado ? 'Ligado' : 'Desligado'}</span></li>`).join('') + '</ul>'
+    ? '<ul class="fs-lista">' + regras.map(r => `<li><button class="fs-regra" type="button" data-fs-chave="${escapeHtml(fsChave(r.data, r.local))}"><b>${escapeHtml(r.data ? fsDataCurta(r.data) + ' · ' + (r.evento || r.local) : 'Todo dia')}</b><br>${escapeHtml(r.premio)} · a cada ${r.cada} · ${r.limite}/dia${r.tema === 'odd' ? ' · ODD' : r.tema === 'aniversario' ? ' · Aniversário 🎈' : ''}</button><button class="fs-cod-btn" type="button" data-fs-codigos="${escapeHtml(r.id)}">🎟️ Códigos</button><span class="fs-tag ${r.ligado ? 'ok' : 'off'}">${r.ligado ? 'Ligado' : 'Desligado'}</span></li>`).join('') + '</ul>'
     : '<div class="agenda-vazio">Nenhuma regra ainda. Configure acima e salve.</div>';
   document.querySelectorAll('[data-fs-chave]').forEach(b => b.addEventListener('click', () => { sel.value = b.dataset.fsChave; fsPreencherForm(); sel.scrollIntoView({ behavior: 'smooth', block: 'center' }); }));
+  document.querySelectorAll('[data-fs-codigos]').forEach(b => b.addEventListener('click', () => abrirCodigosFS(b.dataset.fsCodigos)));
 
   const cupons = (d.cupons || []).slice().reverse();
   document.getElementById('fsCupons').innerHTML = cupons.length
-    ? '<ul class="fs-lista">' + cupons.map(c => `<li><code>${escapeHtml(c.codigo)}</code><span>${escapeHtml(c.gerado)}</span>${c.repetido ? '<span class="fs-tag alerta" title="Mais de um cupom hoje com a mesma marca de aparelho">⚠️ mesmo aparelho?</span>' : ''}<span class="fs-tag ${c.status === 'Usado' ? 'ok' : 'livre'}">${escapeHtml(c.status)}</span></li>`).join('') + '</ul><p class="fs-nota">Tudo fica na aba "Food secreto cupons" da planilha.' + (cupons.some(c => c.repetido) ? ' ⚠️ = mais de um cupom com o mesmo modelo de celular (pode ser a mesma pessoa ou só celulares iguais); confira no balcão.' : '') + '</p>'
+    ? '<ul class="fs-lista">' + cupons.map(c => `<li>${c.numero ? '<span class="fs-tag off">nº ' + c.numero + '</span>' : ''}<code>${escapeHtml(c.codigo)}</code><span>${escapeHtml(c.gerado)}</span>${c.repetido ? '<span class="fs-tag alerta" title="Mais de um cupom hoje com a mesma marca de aparelho">⚠️ mesmo aparelho?</span>' : ''}<span class="fs-tag ${c.status === 'Usado' ? 'ok' : 'livre'}">${escapeHtml(c.status)}</span></li>`).join('') + '</ul><p class="fs-nota">Tudo fica na aba "Food secreto cupons" da planilha.' + (cupons.some(c => c.repetido) ? ' ⚠️ = mais de um cupom com o mesmo modelo de celular (pode ser a mesma pessoa ou só celulares iguais); confira no balcão.' : '') + '</p>'
     : '<div class="agenda-vazio">Nenhum cupom hoje.</div>';
 }
 
@@ -1248,6 +1275,66 @@ async function validarCupomFS(){
     out.innerHTML = `<div class="fs-resultado nao"><b>Não consegui validar</b>${escapeHtml(err.message)}</div>`;
   } finally { btn.disabled = false; }
 }
+
+// v30 (Apps Script v22): 🎟️ Códigos de uma regra. O servidor gera antes os
+// códigos do limite do dia (numerados) e o site entrega na ordem. A cozinha
+// vê a lista (pode tirar print antes do evento) e toca no código para marcar usado.
+let fsCodigosId = '';
+async function abrirCodigosFS(id){
+  fsCodigosId = id;
+  const r = (fsDados.regras || []).find(x => x.id === id);
+  document.getElementById('fsCodigosTitulo').textContent = 'Códigos ' + (r && r.data ? 'do evento' : 'de hoje');
+  document.getElementById('fsCodigosSub').textContent = r ? (r.data ? fsDataCurta(r.data) + ' · ' + (r.evento || r.local) : 'Todo dia · ' + fsDataCurta(fsDados.hoje)) + ' · ' + r.premio : '';
+  document.getElementById('fsCodigosCorpo').innerHTML = '<div class="agenda-vazio">Carregando...</div>';
+  document.getElementById('fsCodigosBg').classList.add('show');
+  await carregarCodigosFS();
+}
+
+async function carregarCodigosFS(){
+  const corpo = document.getElementById('fsCodigosCorpo');
+  try {
+    const j = await fsPost({ action: 'codigosFoodSecreto', id: fsCodigosId });
+    const cods = j.codigos || [];
+    const saiu = cods.filter(c => c.status !== 'Reservado').length, usados = cods.filter(c => c.status === 'Usado').length;
+    const ehHoje = j.data === j.hoje;
+    const tag = c => c.status === 'Usado' ? `<span class="fs-tag ok">Usado ${escapeHtml(c.usado_em)}</span>`
+      : c.status === 'Reservado' ? '<span class="fs-tag res">Ainda não saiu</span>'
+      : `<span class="fs-tag livre">Saiu ${escapeHtml(c.saiu)}</span>`;
+    corpo.innerHTML = cods.length
+      ? `<div class="fs-cod-stats"><div class="fs-stat"><b>${cods.length}</b><span>Códigos</span></div><div class="fs-stat"><b>${saiu}</b><span>Já saíram</span></div><div class="fs-stat"><b>${usados}</b><span>Usados</span></div></div>
+         <ul class="fs-cod-lista">${cods.map(c => `<li class="${c.status === 'Usado' ? 'usado' : c.status === 'Reservado' ? '' : (ehHoje ? 'saiu' : '')}" data-fs-cod="${escapeHtml(c.codigo)}"><span class="n">${c.numero}</span><code>${escapeHtml(c.codigo)}</code>${tag(c)}</li>`).join('')}</ul>
+         <p class="fs-nota">${j.passou ? 'Esse evento já passou.' : 'Os códigos saem do site nesta ordem (o cliente vê o nº junto do código). Só vale código que já saiu. ' + (ehHoje ? 'Toque num código que saiu para marcar como usado.' : 'Dá para tirar print desta lista antes do evento.')}</p>`
+      : `<div class="agenda-vazio">${j.passou ? 'Nenhum código saiu nesse evento.' : 'Limite por dia = 0. Aumente o limite e salve a regra.'}</div>`;
+    corpo.querySelectorAll('li.saiu').forEach(li => li.addEventListener('click', e => {
+      if (e.target.closest('.fs-marcar')) return;
+      const aberto = li.querySelector('.fs-marcar');
+      corpo.querySelectorAll('.fs-marcar').forEach(x => x.remove());
+      if (aberto) return;
+      li.insertAdjacentHTML('beforeend', '<div class="fs-marcar"><button type="button" class="nao">Cancelar</button><button type="button" class="sim">✔ Marcar como usado</button></div>');
+      li.querySelector('.nao').addEventListener('click', () => li.querySelector('.fs-marcar').remove());
+      li.querySelector('.sim').addEventListener('click', () => marcarUsadoFS(li.dataset.fsCod, li));
+    }));
+  } catch(err){
+    corpo.innerHTML = '<div class="agenda-vazio">Não consegui carregar: ' + escapeHtml(/desconhecida|v18/.test(err.message) ? 'publique o Apps Script v22 primeiro' : err.message) + '</div>';
+  }
+}
+
+async function marcarUsadoFS(codigo, li){
+  const b = li.querySelector('.sim');
+  b.disabled = true; b.textContent = 'Marcando...';
+  try {
+    const j = await fsPost({ action: 'validarCupom', codigo });
+    if (!j.valido) { li.querySelector('.fs-marcar').innerHTML = '<span class="fs-nota" style="margin:0">❌ ' + escapeHtml(j.motivo || 'Não vale') + '</span>'; return; }
+    await carregarCodigosFS();
+    loadFoodSecreto();
+  } catch(err){
+    b.disabled = false; b.textContent = 'Tentar de novo';
+  }
+}
+
+document.getElementById('fsCodigosFechar').addEventListener('click', () => document.getElementById('fsCodigosBg').classList.remove('show'));
+document.getElementById('fsCodigosAtualizar').addEventListener('click', carregarCodigosFS);
+document.getElementById('fsCodigosBg').addEventListener('click', e => { if (e.target.id === 'fsCodigosBg') e.currentTarget.classList.remove('show'); });
 
 document.getElementById('fsQuando').addEventListener('change', fsPreencherForm);
 document.getElementById('fsSalvarBtn').addEventListener('click', salvarFoodSecreto);
