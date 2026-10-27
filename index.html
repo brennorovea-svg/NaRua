@@ -5455,7 +5455,7 @@ Regras:
 - Se o pedido quiser algo misterioso ou surpresa, esse item NÃO entra em "pratos": use "misterio" sem revelar o nome nem o que tem dentro. Sem pedido de mistério, "misterio" é null.
 - "foto": se uma foto anexada combinar com o prato, use "anexo1", "anexo2"...; senão deixe vazio.
 - "sem_preco": true só se o pedido disser para não mostrar preço. "mostrar_evento": false só se o pedido disser para não mostrar o evento.
-- Diga sempre "o Narua" (é um food truck). Nunca cite outros food trucks. Português do Brasil, tom animado, direto e acolhedor.
+- Diga sempre "o Narua" (é um food truck) e "nós do Narua". Nunca cite outros food trucks nem compare com concorrentes. Nunca use as palavras "miojo" nem "comida japonesa". Não prometa entrega nem tempo de espera. Poucos emojis. Português do Brasil, tom animado, direto e acolhedor.
 
 Menu (id: nome · descrição):
 ${menu}
@@ -5498,7 +5498,8 @@ async function vdCompletar(roteiro, evento){
     if (!m || pratos.some(q => q.m === m)) continue;
     const anexo = /^anexo(\d)$/.exec(String(p.foto || '').trim());
     const img = anexo && vdAnexos[anexo[1] - 1] ? vdAnexos[anexo[1] - 1].img : await vdImg(srcFotoApp(m.foto));
-    const valor = (usarEvento && m.evento) ? m.evento : m.preco;
+    // Guia de comunicação: preço em post só no cardápio especial de evento.
+    const valor = (usarEvento && evento.cardapio && m.evento) ? m.evento : 0;
     pratos.push({ m, nome: m.nome + (m.tamanho ? ' ' + m.tamanho : ''), texto: String(p.texto || m.desc || ''), img,
       preco: roteiro.sem_preco ? '' : (valor ? String(Math.round(valor * 100) / 100).replace('.', ',') : '') });
     if (pratos.length === 5) break;
