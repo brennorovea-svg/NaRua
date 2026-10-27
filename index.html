@@ -512,6 +512,22 @@
   .agenda-sugestao{margin-top:10px;font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
   .agenda-chip{border:2px solid var(--ink);background:var(--orange);color:var(--ink);border-radius:20px;padding:5px 12px;font-family:'Poppins',sans-serif;font-weight:700;font-size:12px;cursor:pointer;}
   .agenda-editando{font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;color:var(--red);margin-bottom:10px;}
+  /* v32: 🎬 Criar vídeo */
+  .home-card.c-video{background:var(--cyan);color:var(--ink);border-style:dashed;}
+  .vd-anexar{width:100%;margin-top:10px;}
+  .vd-fotos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .vd-fotos:empty{display:none;}
+  .vd-foto{position:relative;width:66px;height:66px;border:2px solid var(--ink);border-radius:8px;overflow:hidden;background:#fff;}
+  .vd-foto img{width:100%;height:100%;object-fit:cover;display:block;}
+  .vd-foto span{position:absolute;left:3px;top:3px;background:var(--ink);color:#fff;font-family:'Poppins',sans-serif;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:6px;}
+  .vd-foto button{position:absolute;right:2px;top:2px;width:20px;height:20px;border-radius:50%;border:2px solid var(--ink);background:var(--red);color:#fff;font-size:11px;line-height:1;padding:0;cursor:pointer;}
+  .vd-canvas{display:block;width:100%;max-width:330px;aspect-ratio:9/16;height:auto;margin:0 auto;border:2px solid var(--ink);border-radius:10px;background:#0d0d0d;}
+  .vd-ajuste{display:flex;gap:8px;}
+  .vd-ajuste input{flex:1;min-width:0;}
+  .vd-ajuste .btn-primary{flex:0 0 auto;padding:11px 14px;}
+  .vd-baixar{text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;}
+  .vd-legenda{background:#fff;border:2px solid var(--ink);border-radius:8px;padding:10px 12px;font-family:'Poppins',sans-serif;font-size:13px;line-height:1.5;white-space:pre-wrap;min-height:44px;}
+  #vdGerarBtn:disabled,#vdGravarBtn:disabled,#vdRefazerBtn:disabled{opacity:.6;cursor:wait;}
 </style>
 </head>
 <body>
@@ -610,6 +626,10 @@
       <button class="home-card c-secreto" type="button" data-view="foodSecreto">
         <span class="icon">🚚</span>
         <span class="title">Food secreto</span>
+      </button>
+      <button class="home-card c-video" type="button" data-view="video">
+        <span class="icon">🎬</span>
+        <span class="title">Criar vídeo</span>
       </button>
     </div>
   </div>
@@ -894,6 +914,62 @@
     <div class="card" id="fsCupons"><div class="agenda-vazio">Carregando...</div></div>
   </div>
 
+  <!-- 🎬 Criar vídeo (v32): a IA monta o roteiro e o app desenha e grava o vídeo no aparelho -->
+  <div id="viewVideo" style="display:none;">
+    <div class="step-label"><span class="num">1</span>O que você quer</div>
+    <div class="card">
+      <div class="field-row">
+        <div class="field" style="flex:1 1 200px;">
+          <label for="vdEvento">Evento</label>
+          <select id="vdEvento"><option value="">Cardápio da semana (sem evento)</option></select>
+        </div>
+        <div class="field" style="flex:1 1 140px;">
+          <label for="vdEstilo">Estilo</label>
+          <select id="vdEstilo"><option value="narua">Narua</option><option value="odd">Festa (roxo, estilo ODD)</option></select>
+        </div>
+      </div>
+      <label for="vdPedido">Pedido</label>
+      <textarea id="vdPedido" class="agenda-frase" placeholder="Ex.: &quot;Stories do evento de sábado, mostra o yakissoba e o guioza e deixa o combo misterioso&quot;"></textarea>
+      <div class="vd-fotos" id="vdFotos"></div>
+      <button type="button" class="btn-secondary vd-anexar" id="vdFotoBtn">📷 Anexar fotos <span class="label-opcional">(opcional, até 4)</span></button>
+      <input type="file" id="vdFotoInput" accept="image/*" multiple>
+      <button class="save-btn" id="vdGerarBtn" type="button">✨ Criar vídeo</button>
+      <div id="vdMsg" class="save-msg"></div>
+      <div class="evento-hint">Vídeo vertical para Stories e Reels, sem som (a música entra no Instagram). Preços, data e endereço vêm do menu e da agenda, nunca da IA.</div>
+    </div>
+
+    <div id="vdResultado" style="display:none;">
+      <div class="step-label"><span class="num">2</span>Prévia</div>
+      <div class="card">
+        <canvas id="vdCanvas" class="vd-canvas" width="1080" height="1920"></canvas>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn-secondary" type="button" id="vdPlayBtn">⏸ Pausar</button>
+          <button class="btn-secondary" type="button" id="vdReiniciarBtn">⏮ Do começo</button>
+        </div>
+        <label for="vdAjuste" style="margin-top:16px;">Quer mudar algo?</label>
+        <div class="vd-ajuste">
+          <input type="text" id="vdAjuste" placeholder="Ex.: troca o guioza pelo karaaguê">
+          <button class="btn-primary" type="button" id="vdRefazerBtn">🔁 Refazer</button>
+        </div>
+      </div>
+
+      <div class="step-label"><span class="num">3</span>Arquivo e legenda</div>
+      <div class="card">
+        <button class="save-btn" id="vdGravarBtn" type="button" style="margin-top:0;">🎬 Gerar arquivo do vídeo</button>
+        <div class="progress-wrap" id="vdProgresso" style="display:none;"><div class="progress-track"><div class="progress-fill" id="vdProgressoFill" style="width:0%"></div></div></div>
+        <div id="vdGravarMsg" class="save-msg"></div>
+        <div class="btn-row" id="vdArquivoBtns" style="display:none;margin-top:12px;">
+          <button class="btn-primary" type="button" id="vdCompartilharBtn">📤 Compartilhar</button>
+          <a class="btn-secondary vd-baixar" id="vdBaixarLink" download>⬇️ Baixar</a>
+        </div>
+        <label style="margin-top:16px;">Legenda sugerida</label>
+        <div class="vd-legenda" id="vdLegenda"></div>
+        <button class="btn-secondary" type="button" id="vdCopiarBtn" style="width:100%;margin-top:8px;">📋 Copiar legenda</button>
+      </div>
+    </div>
+  </div>
+
+
 
   <footer class="app-footer">Desenvolvido por <a class="neon-link" href="https://neonscripts.com.br/" target="_blank" rel="noopener" aria-label="Neon Scripts (abre em nova aba)"><span class="nn">NEON</span><span class="ns">SCRIPTS</span></a></footer>
 
@@ -1069,7 +1145,7 @@ const eventoLocal = document.getElementById('eventoLocal');
 const eventoAcrescimo = document.getElementById('eventoAcrescimo');
 
 const backBtn = document.getElementById('backBtn');
-const VIEW_IDS = { home:'viewHome', comandas:'viewComandas', menu:'viewMenu', menuEvento:'viewMenuEvento', bi:'viewBI', semanal:'viewSemanal', agenda:'viewAgenda', consultarCompras:'viewConsultarCompras', foodSecreto:'viewFoodSecreto' };
+const VIEW_IDS = { home:'viewHome', comandas:'viewComandas', menu:'viewMenu', menuEvento:'viewMenuEvento', bi:'viewBI', semanal:'viewSemanal', agenda:'viewAgenda', consultarCompras:'viewConsultarCompras', foodSecreto:'viewFoodSecreto', video:'viewVideo' };
 const VIEW_SUBTITLES = {
   home: 'Escolha o que você quer fazer',
   comandas: 'Registro de vendas do food truck',
@@ -1079,7 +1155,8 @@ const VIEW_SUBTITLES = {
   semanal: 'Acompanhamento semanal',
   agenda: 'Onde o food truck vai estar',
   consultarCompras: 'Compras registradas em outra planilha',
-  foodSecreto: 'O food truck que dá cupom no site'
+  foodSecreto: 'O food truck que dá cupom no site',
+  video: 'Vídeos curtos para o Instagram'
 };
 let viewAtual = 'home';
 function showView(view){
@@ -1098,6 +1175,7 @@ function showView(view){
   document.querySelector('.wrap').classList.toggle('largo', view === 'semanal' || view === 'bi');
   if (view === 'consultarCompras') loadCompras();
   if (view === 'foodSecreto') loadFoodSecreto();
+  if (view === 'video') abrirVideo();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 backBtn.addEventListener('click', () => showView('home'));
@@ -5234,6 +5312,544 @@ eventoLocal.addEventListener('input', () => {
     const opcoes = [...box.querySelectorAll('[data-local]')].map(b => chaveLocal(b.dataset.local));
     if (opcoes.includes(chaveLocal(eventoLocal.value))) box.style.display = 'none';
   }
+});
+
+// ---------- v32: 🎬 Criar vídeo ----------
+// A pessoa escreve o que quer; a IA (Haiku, pela mesma rota 'ler' do Apps
+// Script que lê as comandas) devolve só um roteiro em JSON, e o app desenha o
+// vídeo num canvas com o visual da Narua. Preço, data, horário e endereço vêm
+// do menu e da agenda, nunca da IA. O arquivo é gravado no próprio aparelho
+// (MediaRecorder): nada vai para o servidor além do pedido de texto e fotos.
+const VD_W = 1080, VD_H = 1920, VD_FPS = 30;
+const VD_TEMAS = {
+  narua: { fundo: ['#0d0d0d', '#0d0d0d'], titulo: '#f6af43', sombra: '#e73334', texto: '#f7f1e2', destaque: '#e73334', pill: '#40d5e8', fonte: '"Titan One", cursive', arcos: ['#40d5e8', '#e73334', '#f6af43'] },
+  odd:   { fundo: ['#12051f', '#2b0b4a'], titulo: '#f7f1e2', sombra: '#9b3df0', texto: '#f7f1e2', destaque: '#9b3df0', pill: '#f49140', fonte: 'Anton, "Titan One", sans-serif', arcos: ['#9b3df0', '#f49140', '#6d24b8'] }
+};
+let vdSpec = null, vdCenas = [], vdDur = 0, vdTema = VD_TEMAS.narua;
+let vdTocando = true, vdT = 0, vdT0 = 0, vdRaf = 0, vdGravando = false;
+let vdAnexos = [];      // { url, img, data, mediaType }
+let vdOcorrencias = []; // próximos dias da agenda
+let vdMenuAtual = [];   // itens que a IA pôde escolher (id m1, m2...)
+let vdLogo = null, vdArquivo = null, vdFontesProntas = null;
+const vdImgCache = {};
+
+const vdCl = x => Math.max(0, Math.min(1, x));
+const vdPr = (t, a, b) => vdCl((t - a) / (b - a));
+const vdEo = x => 1 - Math.pow(1 - x, 3);
+const vdEi = x => x * x * x;
+const vdBack = x => { const c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+
+function vdPrepararFontes(){
+  if (vdFontesProntas) return vdFontesProntas;
+  vdFontesProntas = (async () => {
+    await new Promise(res => {
+      const l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = 'https://fonts.googleapis.com/css2?family=Anton&display=block';
+      l.onload = l.onerror = res;
+      document.head.appendChild(l);
+      setTimeout(res, 4000);
+    });
+    try { await Promise.all(['100px "Titan One"', '700 40px Poppins', '600 40px Poppins', '100px Anton'].map(f => document.fonts.load(f))); } catch(e){}
+  })();
+  return vdFontesProntas;
+}
+
+function vdImg(src){
+  if (!src) return Promise.resolve(null);
+  if (vdImgCache[src]) return vdImgCache[src];
+  return vdImgCache[src] = new Promise(res => {
+    const im = new Image();
+    // Foto de outro endereço só entra no vídeo se o servidor deixar (senão o
+    // navegador bloqueia a gravação); o site da Narua deixa.
+    if (/^https?:/i.test(src) && !src.startsWith(location.origin)) im.crossOrigin = 'anonymous';
+    im.onload = () => res(im);
+    im.onerror = () => res(null);
+    im.src = src;
+  });
+}
+
+// Itens que podem aparecer no vídeo: menu padrão (sem os ocultos) e, se o
+// evento tiver cardápio especial, os preços e itens dele.
+function vdMontarMenu(cardapio){
+  const lista = (MENU_REFERENCIA || []).filter(m => m.chave && m.status !== 'oculto').map(m => ({
+    chave: m.chave, nome: m.nome || m.chave, tamanho: m.tamanho, desc: m.descricao,
+    preco: m.preco, evento: 0, foto: m.foto, esgotado: m.status === 'esgotado'
+  }));
+  if (cardapio) (cardapio.itens || []).map(itemEspecial).filter(i => i.chave && i.status !== 'oculto').forEach(i => {
+    const k = normalizarTexto(i.chave);
+    const iguais = lista.filter(x => x.chave === k && (!i.tamanho || !x.tamanho || normalizarTexto(x.tamanho) === normalizarTexto(i.tamanho)));
+    if (iguais.length) iguais.forEach(b => {
+      b.evento = i.preco; if (i.nome) b.nome = i.nome; if (i.descricao) b.desc = i.descricao;
+      if (i.foto) b.foto = i.foto; b.esgotado = i.status === 'esgotado';
+    });
+    else lista.push({ chave: k, nome: i.nome || i.chave, tamanho: i.tamanho, desc: i.descricao, preco: 0, evento: i.preco, foto: i.foto || fotoHerdada(i), esgotado: i.status === 'esgotado' });
+  });
+  return lista.map((m, n) => Object.assign(m, { id: 'm' + (n + 1) }));
+}
+
+function vdHora(ev){
+  const h = s => String(s || '').replace(/^0(\d)/, '$1').replace(/:00$/, 'h').replace(':', 'h');
+  if (ev.inicio && ev.fim) return h(ev.inicio) + ' às ' + h(ev.fim);
+  return ev.inicio ? 'a partir das ' + h(ev.inicio) : '';
+}
+function vdEventoEscolhido(){
+  const o = vdOcorrencias[Number(document.getElementById('vdEvento').value) - 1];
+  if (!o) return null;
+  const ev = o.ev;
+  return {
+    data: rotuloDia(o.data), hora: vdHora(ev), local: ev.evento || ev.local || '',
+    endereco: ev.endereco || '', especial: !!ev.especial,
+    cardapio: ev.cardapio ? acharCardapioEspecial(ev.cardapio) : null
+  };
+}
+
+async function abrirVideo(){
+  vdPrepararFontes();
+  const sel = document.getElementById('vdEvento');
+  try {
+    if (!CARDAPIOS_ESPECIAIS.length) await carregarCardapiosEspeciais();
+    const eventos = await carregarEventos();
+    const hoje = agendaHoje || dataHojeSP();
+    const antes = sel.value;
+    vdOcorrencias = ocorrenciasAgenda(eventos, hoje, 45).filter(o => !o.cancelado).slice(0, 20);
+    sel.innerHTML = '<option value="">Cardápio da semana (sem evento)</option>' + vdOcorrencias.map((o, n) =>
+      `<option value="${n + 1}">${escapeHtml(rotuloDia(o.data) + ' · ' + (o.ev.evento || o.ev.local))}${o.ev.especial ? ' ⭐' : ''}</option>`).join('');
+    if (antes && Number(antes) <= vdOcorrencias.length) sel.value = antes;
+  } catch(e){
+    document.getElementById('vdMsg').textContent = 'Não consegui carregar a agenda (' + e.message + '). Dá para criar sem evento.';
+  }
+  if (vdSpec) vdTocar();
+}
+
+function vdRenderFotos(){
+  document.getElementById('vdFotos').innerHTML = vdAnexos.map((a, n) =>
+    `<div class="vd-foto"><img src="${a.url}" alt=""><span>${n + 1}</span><button type="button" data-vd-tirar="${n}" aria-label="Tirar foto ${n + 1}">✕</button></div>`).join('');
+  document.getElementById('vdFotoBtn').style.display = vdAnexos.length >= 4 ? 'none' : '';
+}
+async function vdAnexar(arquivos){
+  for (const f of [...arquivos].slice(0, 4 - vdAnexos.length)) {
+    const url = URL.createObjectURL(f);
+    const img = await vdImg(url);
+    if (!img) continue;
+    // Para a IA vai uma cópia pequena (gasta menos); o vídeo usa a original.
+    const lado = 640, k = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    vdAnexos.push({ url, img, mediaType: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.75).split(',')[1] });
+  }
+  vdRenderFotos();
+}
+
+function vdInstrucoes(evento){
+  const menu = vdMenuAtual.map(m => `${m.id}: ${m.nome}${m.tamanho ? ' (' + m.tamanho + ')' : ''}${m.esgotado ? ' [ESGOTADO]' : ''} · ${m.desc || ''}`).join('\n');
+  return `Você monta o roteiro de vídeos curtos verticais (Stories/Reels) para o Narua, food truck de comida asiática de rua em Caieiras e Franco da Rocha (SP). Responda SÓ com um objeto JSON, sem texto antes ou depois.
+
+Formato do JSON:
+{"titulo":"até 28 letras","subtitulo":"até 32 letras","pratos":[{"id":"m1","texto":"descrição curta, até 50 letras","foto":"anexo1 ou vazio"}],"misterio":null ou {"titulo":"até 16 letras","texto":"até 60 letras"},"mostrar_evento":true,"sem_preco":false,"fechamento":"até 26 letras","legenda":"legenda para Instagram, até 300 caracteres, 2 a 4 hashtags"}
+
+Regras:
+- 2 a 5 pratos, só com os ids do menu abaixo; nunca escolha item ESGOTADO.
+- Não escreva preço, data, horário nem endereço em nenhum campo de tela: o app coloca isso sozinho. Na legenda pode citar o local e o dia do evento.
+- Se o pedido quiser algo misterioso ou surpresa, esse item NÃO entra em "pratos": use "misterio" sem revelar o nome nem o que tem dentro. Sem pedido de mistério, "misterio" é null.
+- "foto": se uma foto anexada combinar com o prato, use "anexo1", "anexo2"...; senão deixe vazio.
+- "sem_preco": true só se o pedido disser para não mostrar preço. "mostrar_evento": false só se o pedido disser para não mostrar o evento.
+- Diga sempre "o Narua" (é um food truck). Nunca cite outros food trucks. Português do Brasil, tom animado, direto e acolhedor.
+
+Menu (id: nome · descrição):
+${menu}
+
+Evento: ${evento ? JSON.stringify({ dia: evento.data, horario: evento.hora, local: evento.local, especial: evento.especial }) : 'nenhum (vídeo do cardápio da semana)'}
+Fotos anexadas: ${vdAnexos.length}`;
+}
+
+async function vdPedirIA(ajuste){
+  if (!webhookUrl) throw new Error('configure a planilha na engrenagem ⚙️ primeiro');
+  const evento = vdEventoEscolhido();
+  vdMenuAtual = vdMontarMenu(evento && evento.cardapio);
+  if (!vdMenuAtual.length) throw new Error('o menu ainda não carregou; abra o Editar menu uma vez e volte');
+  const pedidoTxt = document.getElementById('vdPedido').value.trim() || 'Vídeo animado com os pratos mais gostosos do Narua';
+  let texto = 'Pedido: ' + pedidoTxt;
+  if (ajuste && vdSpec) texto += '\n\nRoteiro atual (JSON): ' + JSON.stringify(vdSpec.roteiro) + '\nAjuste pedido: ' + ajuste + '\nDevolva o JSON completo já ajustado.';
+  const conteudo = [];
+  vdAnexos.forEach((a, n) => {
+    conteudo.push({ type: 'text', text: 'anexo' + (n + 1) + ':' });
+    conteudo.push({ type: 'image', source: { type: 'base64', media_type: a.mediaType, data: a.data } });
+  });
+  conteudo.push({ type: 'text', text: texto });
+  const resposta = await lerPelaPlanilha({ max_tokens: 1500, system: vdInstrucoes(evento), messages: [{ role: 'user', content: conteudo }] });
+  if (resposta && resposta.type === 'error') throw new Error('a IA respondeu com erro: ' + ((resposta.error && resposta.error.message) || 'desconhecido'));
+  const bloco = ((resposta && resposta.content) || []).find(b => b.type === 'text');
+  if (!bloco) throw new Error('a IA não respondeu');
+  const a = bloco.text.indexOf('{'), b = bloco.text.lastIndexOf('}');
+  let roteiro;
+  try { roteiro = JSON.parse(bloco.text.slice(a, b + 1)); }
+  catch(e){ throw new Error('a IA respondeu fora do formato; toque de novo'); }
+  return vdCompletar(roteiro, evento);
+}
+
+// Junta o roteiro da IA com os dados de verdade (menu, preços, agenda, fotos).
+async function vdCompletar(roteiro, evento){
+  const usarEvento = evento && roteiro.mostrar_evento !== false;
+  const pratos = [];
+  for (const p of (roteiro.pratos || [])) {
+    const m = vdMenuAtual.find(x => x.id === String(p.id || '').trim());
+    if (!m || pratos.some(q => q.m === m)) continue;
+    const anexo = /^anexo(\d)$/.exec(String(p.foto || '').trim());
+    const img = anexo && vdAnexos[anexo[1] - 1] ? vdAnexos[anexo[1] - 1].img : await vdImg(srcFotoApp(m.foto));
+    const valor = (usarEvento && m.evento) ? m.evento : m.preco;
+    pratos.push({ m, nome: m.nome + (m.tamanho ? ' ' + m.tamanho : ''), texto: String(p.texto || m.desc || ''), img,
+      preco: roteiro.sem_preco ? '' : (valor ? String(Math.round(valor * 100) / 100).replace('.', ',') : '') });
+    if (pratos.length === 5) break;
+  }
+  if (!pratos.length) throw new Error('a IA não escolheu nenhum prato do menu; tente explicar melhor');
+  if (!vdLogo) vdLogo = await vdImg('narua-logo.svg?v=1');
+  const mist = roteiro.misterio && roteiro.misterio.titulo ? { titulo: String(roteiro.misterio.titulo), texto: String(roteiro.misterio.texto || '') } : null;
+  return {
+    roteiro,
+    estilo: document.getElementById('vdEstilo').value === 'odd' ? 'odd' : 'narua',
+    titulo: String(roteiro.titulo || 'Hoje tem Narua!'), subtitulo: String(roteiro.subtitulo || ''),
+    pratos, misterio: mist,
+    evento: usarEvento ? { data: evento.data, hora: evento.hora, local: evento.local, endereco: evento.endereco } : null,
+    fechamento: String(roteiro.fechamento || 'Vem comer com a gente!'),
+    legenda: String(roteiro.legenda || '')
+  };
+}
+
+// ---- desenho ----
+function vdFonte(peso, tam, fam){ return `${peso} ${tam}px ${fam}`; }
+function vdQuebrar(ctx, texto, larg){
+  const linhas = [];
+  String(texto).split('\n').forEach(par => {
+    let atual = '';
+    par.split(/\s+/).filter(Boolean).forEach(p => {
+      const teste = atual ? atual + ' ' + p : p;
+      if (ctx.measureText(teste).width <= larg || !atual) atual = teste;
+      else { linhas.push(atual); atual = p; }
+    });
+    if (atual) linhas.push(atual);
+  });
+  return linhas;
+}
+// Acha o maior tamanho em que o texto cabe na largura e no número de linhas.
+function vdCaber(ctx, texto, larg, maxLinhas, tam, minTam, peso, fam){
+  for (let s = tam; s >= minTam; s -= 4) {
+    ctx.font = vdFonte(peso, s, fam);
+    const l = vdQuebrar(ctx, texto, larg);
+    if (l.length <= maxLinhas && l.every(x => ctx.measureText(x).width <= larg)) return { linhas: l, tam: s };
+  }
+  ctx.font = vdFonte(peso, minTam, fam);
+  return { linhas: vdQuebrar(ctx, texto, larg).slice(0, maxLinhas), tam: minTam };
+}
+function vdTexto(ctx, o){
+  // o: { texto, x, y, larg, linhas, tam, min, peso, fam, cor, sombra, alinhar, altura, maiusc }
+  const txt = o.maiusc ? String(o.texto).toUpperCase() : String(o.texto);
+  const r = vdCaber(ctx, txt, o.larg, o.linhas || 2, o.tam, o.min || 30, o.peso || 400, o.fam);
+  ctx.font = vdFonte(o.peso || 400, r.tam, o.fam);
+  ctx.textAlign = o.alinhar || 'center';
+  ctx.textBaseline = 'top';
+  const lh = r.tam * (o.altura || 1.08);
+  r.linhas.forEach((l, n) => {
+    const y = o.y + n * lh;
+    if (o.sombra) { ctx.fillStyle = o.sombra; ctx.fillText(l, o.x + r.tam * 0.07, y + r.tam * 0.07); }
+    ctx.fillStyle = o.cor; ctx.fillText(l, o.x, y);
+  });
+  return o.y + r.linhas.length * lh;
+}
+function vdRet(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function vdCaixa(ctx, x, y, w, h, r, cor, sombra){
+  ctx.fillStyle = 'rgba(0,0,0,.45)'; vdRet(ctx, x + sombra, y + sombra, w, h, r); ctx.fill();
+  ctx.fillStyle = cor; vdRet(ctx, x, y, w, h, r); ctx.fill();
+  ctx.lineWidth = 6; ctx.strokeStyle = '#181818'; ctx.stroke();
+}
+function vdCobrir(ctx, img, x, y, w, h){
+  const k = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+  const sw = w / k, sh = h / k;
+  ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, x, y, w, h);
+}
+function vdComAlfa(ctx, a, fn){ if (a <= 0) return; ctx.save(); ctx.globalAlpha *= vdCl(a); fn(); ctx.restore(); }
+function vdLogoEm(ctx, cx, cy, larg, esc){
+  if (!vdLogo) return;
+  const h = larg * 147.8 / 465.6;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(esc, esc);
+  ctx.drawImage(vdLogo, -larg / 2, -h / 2, larg, h);
+  ctx.restore();
+}
+
+function vdFundo(ctx, t){
+  const g = ctx.createLinearGradient(0, 0, 0, VD_H);
+  g.addColorStop(0, vdTema.fundo[0]); g.addColorStop(1, vdTema.fundo[1]);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, VD_W, VD_H);
+  // arcos coloridos da marca, balançando de leve
+  const dx = Math.sin(t * 1.6) * 30;
+  ctx.lineWidth = 46; ctx.lineCap = 'butt';
+  vdTema.arcos.forEach((cor, n) => {
+    ctx.strokeStyle = cor; ctx.beginPath();
+    ctx.arc(VD_W / 2 + dx, VD_H + 140, 520 - n * 60, Math.PI, 0); ctx.stroke();
+  });
+  vdTema.arcos.forEach((cor, n) => {
+    ctx.strokeStyle = cor; ctx.beginPath();
+    ctx.arc(-40 - dx * 0.5, -40, 250 - n * 52, 0, Math.PI / 2); ctx.stroke();
+  });
+}
+
+function vdMontar(spec){
+  vdSpec = spec; vdTema = VD_TEMAS[spec.estilo] || VD_TEMAS.narua;
+  const odd = spec.estilo === 'odd', F = vdTema.fonte, P = 'Poppins, sans-serif';
+  vdCenas = []; let t = 0;
+  const add = (dur, fn) => { vdCenas.push({ a: t, b: t + dur, fn }); t += dur; };
+
+  add(2.4, (ctx, tt) => { // abertura
+    const a = vdPr(tt, 0, .8), b = vdPr(tt, .45, 1.05), c = vdPr(tt, .9, 1.4);
+    vdComAlfa(ctx, a * 3, () => {
+      ctx.save(); ctx.translate(VD_W / 2, 600); ctx.rotate((1 - vdEo(a)) * -0.4); ctx.translate(-VD_W / 2, -600);
+      vdLogoEm(ctx, VD_W / 2, 600, 720, vdBack(a)); ctx.restore();
+    });
+    let y = 0;
+    vdComAlfa(ctx, b, () => { y = vdTexto(ctx, { texto: spec.titulo, x: VD_W / 2, y: 880 + (1 - vdEo(b)) * 120, larg: 940, linhas: 3, tam: odd ? 170 : 128, min: 70, fam: F, cor: vdTema.titulo, sombra: vdTema.sombra, maiusc: odd }); });
+    if (!y) y = 880 + 130;
+    if (spec.subtitulo) vdComAlfa(ctx, c, () => vdTexto(ctx, { texto: spec.subtitulo, x: VD_W / 2, y: y + 40, larg: 900, linhas: 2, tam: 58, min: 36, peso: 700, fam: P, cor: vdTema.texto, maiusc: true }));
+  });
+
+  spec.pratos.forEach(p => add(1.9, (ctx, tt) => { // um prato por vez
+    const a = vdPr(tt, 0, .45), b = vdPr(tt, 1.55, 1.9);
+    const x = 90, y = 300, w = 900, h = 1200;
+    ctx.save();
+    ctx.translate(VD_W / 2 + (1 - vdEo(a)) * 1150 - vdEi(b) * 1150, VD_H / 2);
+    ctx.rotate(((1 - vdEo(a)) * 8 - vdEi(b) * 8) * Math.PI / 180);
+    ctx.translate(-VD_W / 2, -VD_H / 2);
+    vdCaixa(ctx, x, y, w, h, 36, '#f7f1e2', 18);
+    const fx = x + 30, fy = y + 30, fw = w - 60, fh = 870;
+    ctx.save(); vdRet(ctx, fx, fy, fw, fh, 22); ctx.clip();
+    if (p.img) vdCobrir(ctx, p.img, fx, fy, fw, fh);
+    else { ctx.fillStyle = '#efe5cc'; ctx.fillRect(fx, fy, fw, fh); ctx.fillStyle = '#e4d6b4'; for (let s = -fh; s < fw; s += 60) { ctx.beginPath(); ctx.moveTo(fx + s, fy + fh); ctx.lineTo(fx + s + fh, fy); ctx.lineTo(fx + s + fh + 30, fy); ctx.lineTo(fx + s + 30, fy + fh); ctx.fill(); } }
+    ctx.restore();
+    ctx.lineWidth = 5; ctx.strokeStyle = '#181818'; vdRet(ctx, fx, fy, fw, fh, 22); ctx.stroke();
+    const ny = vdTexto(ctx, { texto: p.nome, x: VD_W / 2, y: fy + fh + 36, larg: fw - 20, linhas: 2, tam: odd ? 96 : 80, min: 46, fam: F, cor: '#181818', maiusc: odd });
+    if (p.texto) vdTexto(ctx, { texto: p.texto, x: VD_W / 2, y: ny + 14, larg: fw - 40, linhas: 2, tam: 40, min: 28, peso: 500, fam: P, cor: '#5c564a', altura: 1.25 });
+    if (p.preco) { // selo de preço
+      const sp = vdPr(tt, .35, .8);
+      vdComAlfa(ctx, sp * 4, () => {
+        ctx.save(); ctx.translate(x + w - 40, y + 60); ctx.rotate(-14 * Math.PI / 180); ctx.scale(vdBack(sp), vdBack(sp));
+        ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.arc(10, 10, 140, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = vdTema.destaque; ctx.beginPath(); ctx.arc(0, 0, 140, 0, Math.PI * 2); ctx.fill();
+        ctx.lineWidth = 6; ctx.strokeStyle = '#181818'; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = vdFonte(700, 38, P); ctx.fillText('R$', 0, -58);
+        const r = vdCaber(ctx, p.preco, 220, 1, 110, 50, 400, '"Titan One", cursive');
+        ctx.font = vdFonte(400, r.tam, '"Titan One", cursive'); ctx.fillText(p.preco, 0, 22);
+        ctx.restore();
+      });
+    }
+    ctx.restore();
+  }));
+
+  if (spec.misterio) add(2.6, (ctx, tt) => {
+    const a = vdPr(tt, .1, .6);
+    vdComAlfa(ctx, vdPr(tt, .2, .6), () => vdTexto(ctx, { texto: spec.misterio.titulo, x: VD_W / 2, y: 330, larg: 940, linhas: 2, tam: odd ? 150 : 118, min: 64, fam: F, cor: vdTema.titulo, sombra: vdTema.sombra, maiusc: odd }));
+    const pisca = (tt % 0.5 < 0.08 && tt < 0.6) ? .2 : a;
+    vdComAlfa(ctx, pisca, () => {
+      ctx.save(); ctx.translate(VD_W / 2, 960 + Math.sin(tt * 4) * 20); const e = .2 + .8 * vdBack(a); ctx.scale(e, e);
+      ctx.font = vdFonte(400, 620, '"Titan One", cursive'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = vdTema.sombra; ctx.fillText('?', 30, 30); ctx.fillStyle = odd ? '#f49140' : '#f6af43'; ctx.fillText('?', 0, 0);
+      ctx.restore();
+    });
+    if (spec.misterio.texto) vdComAlfa(ctx, vdPr(tt, .8, 1.2), () => vdTexto(ctx, { texto: spec.misterio.texto, x: VD_W / 2, y: 1330, larg: 900, linhas: 3, tam: 54, min: 34, peso: 700, fam: P, cor: vdTema.texto, altura: 1.25 }));
+  });
+
+  if (spec.evento) add(2.6, (ctx, tt) => {
+    const ev = spec.evento;
+    const parte = (i, fn) => { const a = vdPr(tt, i * .22, i * .22 + .45); vdComAlfa(ctx, a, () => { ctx.save(); ctx.translate((1 - vdEo(a)) * (i % 2 ? -700 : 700), 0); fn(); ctx.restore(); }); };
+    let y = 330;
+    parte(0, () => { y = vdTexto(ctx, { texto: ev.data, x: VD_W / 2, y: 330, larg: 960, linhas: 1, tam: odd ? 210 : 150, min: 80, fam: F, cor: vdTema.titulo, sombra: vdTema.sombra, maiusc: true }); });
+    let yy = Math.max(y, 520) + 50;
+    if (ev.hora) {
+      const hy = yy;
+      parte(1, () => {
+        ctx.save(); ctx.translate(VD_W / 2, hy + 55); ctx.rotate(-3 * Math.PI / 180);
+        ctx.font = vdFonte(700, 60, 'Poppins, sans-serif'); const w = Math.min(ctx.measureText(ev.hora).width + 90, 960);
+        vdCaixa(ctx, -w / 2, -55, w, 110, 55, vdTema.pill, 10);
+        ctx.fillStyle = '#181818'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ev.hora, 0, 4);
+        ctx.restore();
+      });
+      yy += 180;
+    }
+    const by = Math.max(yy + 40, 820);
+    parte(2, () => {
+      ctx.font = vdFonte(400, 64, '"Titan One", cursive');
+      const r1 = vdCaber(ctx, ev.local, 800, 2, 76, 44, 400, '"Titan One", cursive');
+      ctx.font = vdFonte(600, 42, 'Poppins, sans-serif');
+      const r2 = ev.endereco ? vdCaber(ctx, ev.endereco, 800, 3, 44, 30, 600, 'Poppins, sans-serif') : { linhas: [], tam: 0 };
+      const h = 70 + r1.linhas.length * r1.tam * 1.1 + (r2.linhas.length ? 24 + r2.linhas.length * r2.tam * 1.3 : 0);
+      vdCaixa(ctx, 90, by, 900, h, 30, '#f7f1e2', 16);
+      let ty = vdTexto(ctx, { texto: ev.local, x: VD_W / 2, y: by + 35, larg: 800, linhas: 2, tam: 76, min: 44, fam: '"Titan One", cursive', cor: '#181818', altura: 1.1 });
+      if (ev.endereco) vdTexto(ctx, { texto: '📍 ' + ev.endereco, x: VD_W / 2, y: ty + 24, larg: 800, linhas: 3, tam: 44, min: 30, peso: 600, fam: 'Poppins, sans-serif', cor: '#5c564a', altura: 1.3 });
+    });
+  });
+
+  add(2.4, (ctx, tt) => { // fechamento
+    const a = vdPr(tt, 0, .6), b = vdPr(tt, .25, .75), c = vdPr(tt, .5, 1);
+    vdComAlfa(ctx, a * 3, () => vdLogoEm(ctx, VD_W / 2, 560, 640, vdBack(a)));
+    let y = 0;
+    vdComAlfa(ctx, b, () => { y = vdTexto(ctx, { texto: spec.fechamento, x: VD_W / 2, y: 820 + (1 - vdEo(b)) * 80, larg: 920, linhas: 3, tam: odd ? 130 : 100, min: 60, fam: F, cor: vdTema.texto, sombra: vdTema.sombra, maiusc: odd }); });
+    const ry = Math.max(y || 1000, 1000) + 70;
+    vdComAlfa(ctx, c, () => {
+      ctx.save(); ctx.translate(VD_W / 2, ry + 100); const e = .6 + .4 * vdBack(c); ctx.scale(e, e); ctx.translate(-VD_W / 2, -(ry + 100));
+      vdCaixa(ctx, 110, ry, 860, 200, 30, '#f7f1e2', 16);
+      vdTexto(ctx, { texto: 'naruafoodtruck.com.br', x: VD_W / 2, y: ry + 38, larg: 780, linhas: 1, tam: 60, min: 40, fam: '"Titan One", cursive', cor: '#181818' });
+      vdTexto(ctx, { texto: '@narua.foodtruck', x: VD_W / 2, y: ry + 122, larg: 780, linhas: 1, tam: 44, min: 30, peso: 700, fam: 'Poppins, sans-serif', cor: vdTema.destaque === '#e73334' ? '#e73334' : '#6d24b8' });
+      ctx.restore();
+    });
+  });
+  vdDur = t;
+  document.getElementById('vdLegenda').textContent = spec.legenda || '';
+}
+
+function vdRender(t){
+  const ctx = document.getElementById('vdCanvas').getContext('2d');
+  ctx.save();
+  vdFundo(ctx, t);
+  vdCenas.forEach(c => {
+    if (t < c.a - .05 || t >= c.b + .05) return;
+    const alfa = Math.min(vdPr(t, c.a - .05, c.a + .2), 1 - vdPr(t, c.b - .2, c.b + .05));
+    vdComAlfa(ctx, c === vdCenas[0] && t < .2 ? 1 : alfa, () => c.fn(ctx, t - c.a));
+  });
+  ctx.restore();
+}
+
+function vdTocar(){
+  cancelAnimationFrame(vdRaf);
+  if (!vdSpec || vdGravando) return;
+  vdT0 = performance.now() - vdT * 1000;
+  const passo = () => {
+    if (viewAtual !== 'video' || vdGravando) return;
+    if (vdTocando) vdT = ((performance.now() - vdT0) / 1000) % vdDur;
+    vdRender(vdT);
+    if (vdTocando) vdRaf = requestAnimationFrame(passo);
+  };
+  passo();
+}
+
+async function vdGerar(ajuste){
+  const msg = document.getElementById('vdMsg');
+  const btns = ['vdGerarBtn', 'vdRefazerBtn'].map(id => document.getElementById(id));
+  btns.forEach(b => b.disabled = true);
+  msg.innerHTML = '<span class="spinner" style="display:inline-block;vertical-align:-2px;margin-right:6px;"></span>A IA está montando o roteiro… (uns segundos)';
+  try {
+    await vdPrepararFontes();
+    const spec = await vdPedirIA(ajuste);
+    vdMontar(spec);
+    vdArquivo = null;
+    document.getElementById('vdArquivoBtns').style.display = 'none';
+    document.getElementById('vdGravarMsg').textContent = '';
+    document.getElementById('vdResultado').style.display = 'block';
+    msg.textContent = ajuste ? '✅ Refeito com o ajuste.' : '✅ Pronto! Confira a prévia.';
+    document.getElementById('vdAjuste').value = '';
+    vdT = 0; vdTocando = true; document.getElementById('vdPlayBtn').textContent = '⏸ Pausar';
+    vdTocar();
+    if (!ajuste) document.getElementById('vdResultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e){
+    msg.textContent = '⚠️ Não deu certo: ' + e.message;
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+function vdTipoGravacao(){
+  if (!window.MediaRecorder) return null;
+  return ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+    .find(t => { try { return MediaRecorder.isTypeSupported(t); } catch(e){ return false; } }) || '';
+}
+
+async function vdGravar(){
+  const canvas = document.getElementById('vdCanvas');
+  const msg = document.getElementById('vdGravarMsg');
+  const tipo = vdTipoGravacao();
+  if (tipo === null || !canvas.captureStream) { msg.textContent = '⚠️ Este navegador não grava vídeo. Use o Chrome (Android) ou o Safari atualizado (iPhone).'; return; }
+  const btn = document.getElementById('vdGravarBtn'), barra = document.getElementById('vdProgresso'), fill = document.getElementById('vdProgressoFill');
+  btn.disabled = true; barra.style.display = 'block'; fill.style.width = '0%';
+  document.getElementById('vdArquivoBtns').style.display = 'none';
+  msg.textContent = 'Gravando em tempo real (' + Math.round(vdDur) + ' s). Deixe esta tela aberta.';
+  vdGravando = true; cancelAnimationFrame(vdRaf);
+  try {
+    vdRender(0);
+    const stream = canvas.captureStream(VD_FPS);
+    const rec = new MediaRecorder(stream, Object.assign({ videoBitsPerSecond: 8000000 }, tipo ? { mimeType: tipo } : {}));
+    const partes = [];
+    rec.ondataavailable = e => { if (e.data && e.data.size) partes.push(e.data); };
+    const parou = new Promise(res => { rec.onstop = res; });
+    rec.start(250);
+    const inicio = performance.now();
+    await new Promise(res => {
+      const passo = () => {
+        const t = (performance.now() - inicio) / 1000;
+        vdRender(Math.min(t, vdDur - 0.001));
+        fill.style.width = Math.min(100, t / vdDur * 100) + '%';
+        if (t >= vdDur + 0.2) return res();
+        vdRaf = requestAnimationFrame(passo);
+      };
+      passo();
+    });
+    rec.stop(); await parou;
+    stream.getTracks().forEach(tr => tr.stop());
+    const mime = (rec.mimeType || tipo || 'video/webm').split(';')[0];
+    const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+    const blob = new Blob(partes, { type: mime });
+    if (!blob.size) throw new Error('o arquivo saiu vazio');
+    const nome = 'narua-video-' + dataHojeSP() + '.' + ext;
+    vdArquivo = new File([blob], nome, { type: mime });
+    const link = document.getElementById('vdBaixarLink');
+    if (link.href) URL.revokeObjectURL(link.href);
+    link.href = URL.createObjectURL(blob); link.download = nome;
+    const podeCompartilhar = !!(navigator.canShare && navigator.canShare({ files: [vdArquivo] }));
+    document.getElementById('vdCompartilharBtn').style.display = podeCompartilhar ? '' : 'none';
+    document.getElementById('vdArquivoBtns').style.display = 'flex';
+    msg.textContent = '✅ Vídeo pronto (' + ext.toUpperCase() + ', ' + (blob.size / 1048576).toFixed(1) + ' MB).' +
+      (ext === 'webm' ? ' Este celular gravou em WebM: se o Instagram não aceitar, grave pelo iPhone ou converta no CapCut.' : '');
+  } catch(e){
+    msg.textContent = '⚠️ Não consegui gravar: ' + e.message + (e.name === 'SecurityError' ? ' (uma das fotos não deixa ser gravada; anexe a foto pelo 📷)' : '');
+  } finally {
+    vdGravando = false; btn.disabled = false; barra.style.display = 'none';
+    vdTocar();
+  }
+}
+
+document.getElementById('vdFotoBtn').addEventListener('click', () => document.getElementById('vdFotoInput').click());
+document.getElementById('vdFotoInput').addEventListener('change', async e => { await vdAnexar(e.target.files); e.target.value = ''; });
+document.getElementById('vdFotos').addEventListener('click', e => {
+  const b = e.target.closest('[data-vd-tirar]'); if (!b) return;
+  const [a] = vdAnexos.splice(Number(b.dataset.vdTirar), 1);
+  if (a) URL.revokeObjectURL(a.url);
+  vdRenderFotos();
+});
+document.getElementById('vdGerarBtn').addEventListener('click', () => vdGerar());
+document.getElementById('vdRefazerBtn').addEventListener('click', () => {
+  const a = document.getElementById('vdAjuste').value.trim();
+  if (!a) { document.getElementById('vdAjuste').focus(); return; }
+  vdGerar(a);
+});
+document.getElementById('vdPlayBtn').addEventListener('click', e => {
+  vdTocando = !vdTocando; e.target.textContent = vdTocando ? '⏸ Pausar' : '▶ Tocar'; vdTocar();
+});
+document.getElementById('vdReiniciarBtn').addEventListener('click', () => { vdT = 0; vdTocar(); });
+document.getElementById('vdGravarBtn').addEventListener('click', vdGravar);
+document.getElementById('vdCompartilharBtn').addEventListener('click', async () => {
+  if (!vdArquivo) return;
+  try { await navigator.share({ files: [vdArquivo], title: 'Vídeo Narua' }); } catch(e){ /* a pessoa fechou */ }
+});
+document.getElementById('vdCopiarBtn').addEventListener('click', async e => {
+  const txt = document.getElementById('vdLegenda').textContent;
+  try { await navigator.clipboard.writeText(txt); e.target.textContent = '✅ Legenda copiada'; }
+  catch(err){
+    const r = document.createRange(); r.selectNodeContents(document.getElementById('vdLegenda'));
+    getSelection().removeAllRanges(); getSelection().addRange(r); e.target.textContent = 'Selecionada: copie com o dedo';
+  }
+  setTimeout(() => { e.target.textContent = '📋 Copiar legenda'; }, 2500);
 });
 
 </script>
