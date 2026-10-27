@@ -471,6 +471,12 @@
   /* v11: 📅 Agenda */
   .home-card.c-paper{background:var(--paper);color:var(--ink);}
   .home-card.c-evento{background:var(--paper);color:var(--ink);border-style:dashed;}
+  /* v33: 🍜 Editar menu tem as duas abas: padrão e evento */
+  .menu-tipo{display:flex;gap:8px;margin:0 0 16px;}
+  .menu-tipo-btn{flex:1 1 0;min-height:48px;padding:10px 8px;border:2px solid var(--ink);border-radius:10px;background:var(--paper);color:var(--ink);font-family:'Titan One',cursive;font-size:14px;line-height:1.2;cursor:pointer;box-shadow:3px 3px 0 var(--ink);}
+  .menu-tipo-btn[data-menu-tipo="menuEvento"]{border-style:dashed;}
+  .menu-tipo-btn.ativo{background:var(--orange2);border-style:solid;box-shadow:1px 1px 0 var(--ink);transform:translate(2px,2px);cursor:default;}
+  .menu-tipo-btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px;}
   input[type=time]{width:100%;padding:10px 11px;border:2px solid var(--ink);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:14px;background:#fff;color:var(--ink);}
   .agenda-voz{display:flex;gap:10px;align-items:stretch;}
   .agenda-frase{flex:1;width:100%;min-height:84px;padding:10px 11px;border:2px solid var(--ink);border-radius:8px;font-family:'Poppins',sans-serif;font-size:14px;background:#fff;color:var(--ink);resize:vertical;}
@@ -603,10 +609,6 @@
         <span class="icon">🍜</span>
         <span class="title">Editar menu</span>
       </button>
-      <button class="home-card c-evento" type="button" data-view="menuEvento">
-        <span class="icon">⭐</span>
-        <span class="title">Editar menu de evento</span>
-      </button>
       <button class="home-card c-cyan" type="button" data-view="bi">
         <span class="icon">📊</span>
         <span class="title">Indicadores</span>
@@ -708,14 +710,18 @@
   </div><!-- /viewComandas -->
 
   <div id="viewMenu" style="display:none;">
-    <div class="step-label">Cardápio</div>
+    <div class="menu-tipo" role="tablist" aria-label="Qual cardápio editar">
+      <button type="button" role="tab" class="menu-tipo-btn ativo" data-menu-tipo="menu" aria-selected="true">🍜 Cardápio padrão</button>
+      <button type="button" role="tab" class="menu-tipo-btn" data-menu-tipo="menuEvento" aria-selected="false">⭐ Cardápio de evento</button>
+    </div>
+    <div class="step-label">🍜 Cardápio padrão</div>
     <div class="card">
       <div class="evento-hint">O <b>preço</b> de cada item é o que aparece no <b>site do cardápio</b> e também a referência do app: se uma leitura de comanda vier muito fora dele (ex.: um yakissoba de R$ 4.000), o app avisa. Em <b>🌐 Site</b> ficam nome, tamanho, categoria, descrição, preço iFood, foto e as caixinhas 🥚 ovo, 🥛 leite, 🍖 carne. Item sem nome no site ou marcado como Oculto não aparece lá.</div>
 
       <div class="repasse-box">
         <label>Preço estimado com a % do organizador do evento</label>
         <input type="number" id="repasseInput" min="0" step="0.5" placeholder="Ex: 5">
-        <p class="repasse-hint">Informe a % que o organizador do evento fica da venda. O app mostra, ao lado de cada item, o preço estimado que, depois de descontada essa %, ainda deixa o preço atual pra você (não é uma soma simples de %). É só uma simulação: não muda o cardápio. Para cobrar esse preço num evento, crie o menu em ⭐ Editar menu de evento.</p>
+        <p class="repasse-hint">Informe a % que o organizador do evento fica da venda. O app mostra, ao lado de cada item, o preço estimado que, depois de descontada essa %, ainda deixa o preço atual pra você (não é uma soma simples de %). É só uma simulação: não muda o cardápio. Para cobrar esse preço num evento, crie o cardápio na aba ⭐ Cardápio de evento, aqui em cima.</p>
         <div id="repasseErro" class="repasse-erro" style="display:none;"></div>
       </div>
 
@@ -730,9 +736,13 @@
   </div>
 
   <div id="viewMenuEvento" style="display:none;">
+    <div class="menu-tipo" role="tablist" aria-label="Qual cardápio editar">
+      <button type="button" role="tab" class="menu-tipo-btn" data-menu-tipo="menu" aria-selected="false">🍜 Cardápio padrão</button>
+      <button type="button" role="tab" class="menu-tipo-btn ativo" data-menu-tipo="menuEvento" aria-selected="true">⭐ Cardápio de evento</button>
+    </div>
     <div class="step-label">⭐ Cardápios de evento</div>
     <div class="card" id="espCard">
-      <div class="evento-hint">Aqui você edita <b>só os cardápios de evento</b>: o cardápio padrão (aba Menu, em 🍜 Editar menu) não muda nesta tela. Use para eventos fora dos pontos fixos (quinta e sábado usam o cardápio padrão). Crie o cardápio a partir do padrão com um % de acréscimo, ajuste os preços, tire o que não vai ter e inclua produtos novos. Depois ligue o cardápio ao evento na 📅 Agenda: o site mostra esse cardápio para o evento e o app usa esses preços no lançamento.</div>
+      <div class="evento-hint">Aqui você edita <b>só os cardápios de evento</b>: o cardápio padrão (aba 🍜 Cardápio padrão, aqui em cima) não muda nesta tela. Use para eventos fora dos pontos fixos (quinta e sábado usam o cardápio padrão). Crie o cardápio a partir do padrão com um % de acréscimo, ajuste os preços, tire o que não vai ter e inclua produtos novos. Depois ligue o cardápio ao evento na 📅 Agenda: o site mostra esse cardápio para o evento e o app usa esses preços no lançamento.</div>
       <div id="espAviso"></div>
       <div class="field-row">
         <div class="field">
@@ -1150,7 +1160,7 @@ const VIEW_SUBTITLES = {
   home: 'Escolha o que você quer fazer',
   comandas: 'Registro de vendas do food truck',
   menu: 'Cardápio do app e do site',
-  menuEvento: 'Cardápios dos eventos especiais',
+  menuEvento: 'Cardápio do app e do site',
   bi: 'Indicadores de venda',
   semanal: 'Acompanhamento semanal',
   agenda: 'Onde o food truck vai estar',
@@ -1159,14 +1169,16 @@ const VIEW_SUBTITLES = {
   video: 'Vídeos curtos para o Instagram'
 };
 let viewAtual = 'home';
-function showView(view){
+function showView(view, opcoes){
+  const trocaDeAba = !!(opcoes && opcoes.trocaDeAba);
   viewAtual = VIEW_IDS[view] ? view : 'home';
   Object.values(VIEW_IDS).forEach(id => { document.getElementById(id).style.display = 'none'; });
   document.getElementById(VIEW_IDS[view] || VIEW_IDS.home).style.display = 'block';
   backBtn.style.display = view === 'home' ? 'none' : 'inline-flex';
   gearBtn.style.display = 'flex'; // configurações valem pro app todo (planilha e leitura por IA)
   document.getElementById('pageSubtitle').textContent = VIEW_SUBTITLES[view] || VIEW_SUBTITLES.home;
-  if (view === 'menu') renderMenuEditor();
+  // v33: trocar de aba dentro do 🍜 Editar menu não apaga o que já foi mexido no padrão
+  if (view === 'menu' && !(trocaDeAba && menuRascunhoDaPlanilha)) renderMenuEditor();
   if (view === 'menuEvento') renderMenuEventoView();
   if (view === 'bi') loadBI();
   if (view === 'semanal') loadSemanal();
@@ -1176,10 +1188,14 @@ function showView(view){
   if (view === 'consultarCompras') loadCompras();
   if (view === 'foodSecreto') loadFoodSecreto();
   if (view === 'video') abrirVideo();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (!trocaDeAba) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 backBtn.addEventListener('click', () => showView('home'));
 document.querySelectorAll('.home-card').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
+document.querySelectorAll('.menu-tipo-btn').forEach(btn => btn.addEventListener('click', () => {
+  if (btn.classList.contains('ativo')) return;
+  showView(btn.dataset.menuTipo, { trocaDeAba: true });
+}));
 
 manualBtn.addEventListener('click', addManualComanda);
 gearBtn.addEventListener('click', openModal);
@@ -3064,6 +3080,7 @@ function itemMenu(i){
 }
 
 let menuRascunho = [];
+let menuRascunhoDaPlanilha = false; // v33: rascunho montado com o cardápio já lido da planilha
 // Só deixa salvar o cardápio na planilha se ele foi lido da planilha nesta
 // abertura do app. Sem isso, um app que abriu sem sinal (ou com a planilha
 // lenta) salvava a lista reserva, que só tem item e preço máximo, e apagava
@@ -3435,8 +3452,8 @@ fotoArquivo.addEventListener('change', async e => {
   }
 });
 
-// v15: os cardápios de evento ficam numa tela própria (⭐ Editar menu de evento),
-// separada da edição do cardápio padrão.
+// v15: os cardápios de evento ficam numa tela própria, separada da edição do
+// cardápio padrão. v33: as duas viraram abas do mesmo 🍜 Editar menu.
 function renderMenuEventoView(){
   const categorias = [...new Set([...CATEGORIAS_PADRAO, ...MENU_REFERENCIA.map(m => m.categoria).filter(Boolean)])];
   document.getElementById('categoriasList').innerHTML = categorias.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
@@ -3447,6 +3464,7 @@ function renderMenuEventoView(){
 }
 function renderMenuEditor(){
   menuRascunho = MENU_REFERENCIA.map(itemMenu);
+  menuRascunhoDaPlanilha = !!menuVeioDaPlanilha;
   menuAbertos = new Set();
   desenharMenuRows();
   const msg = document.getElementById('menuSaveMsg');
@@ -4947,7 +4965,7 @@ async function conferirEventoAgenda(ev){
     avisos.push(`Não achei o cardápio "${escapeHtml(ev.cardapio)}" na aba Cardápios especiais. Os que existem: ${CARDAPIOS_ESPECIAIS.map(c => escapeHtml(c.nome)).join(', ')}.`);
   }
   if (ev.status === 'Confirmado' && !ev.repetir && !ev.cardapio && (infoServidor.versao || 0) >= 11) {
-    avisos.push('Evento fora dos pontos fixos <b>sem cardápio do evento</b>: o site e o app vão usar o cardápio padrão. Se os preços ou os produtos mudam, crie o cardápio em ⭐ Editar menu de evento (tela inicial) e escolha aqui.');
+    avisos.push('Evento fora dos pontos fixos <b>sem cardápio do evento</b>: o site e o app vão usar o cardápio padrão. Se os preços ou os produtos mudam, crie o cardápio em 🍜 Editar menu, aba ⭐ Cardápio de evento, e escolha aqui.');
   }
   if ((ev.especial || ev.cardapio) && (infoServidor.versao || 0) < 11) {
     avisos.push('Evento especial e cardápio especial só ficam guardados depois de publicar o Apps Script v11.');
