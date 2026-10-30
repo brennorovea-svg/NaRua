@@ -1033,6 +1033,8 @@
       <div class="field-row"><div class="field"><label for="fsQuando">Quando</label><select id="fsQuando"></select></div></div>
       <label class="fs-chk"><input type="checkbox" id="fsLigado"> Ligado</label>
       <div class="field-row" style="margin-top:12px"><div class="field"><label for="fsCada">Aparece a cada (acessos de todos)</label><input type="number" id="fsCada" min="1" max="50" value="5"></div><div class="field"><label for="fsLimite">Limite por dia</label><input type="number" id="fsLimite" min="0" max="500" value="20"></div></div>
+      <div class="field-row"><div class="field"><label for="fsInicio">Começa às</label><input type="time" id="fsInicio"></div><div class="field"><label for="fsFim">Termina às</label><input type="time" id="fsFim"></div></div>
+      <p class="fs-nota" id="fsHorarioNota" style="margin:-4px 0 14px">Em branco: horário do evento na agenda.</p>
       <div class="field-row"><div class="field"><label for="fsMensagem">Mensagem</label><input type="text" id="fsMensagem" maxlength="80" value="Você achou o food secreto!!"></div></div>
       <div class="field-row"><div class="field"><label for="fsPremio">Prêmio</label><input type="text" id="fsPremio" maxlength="60" value="Vale 1 Guioza!!!!"></div></div>
       <label style="margin-top:4px">Visual</label>
@@ -1396,6 +1398,13 @@ function fsOpcoesQuando(){
   return ops;
 }
 
+// v34: horário da promo no card de status (Apps Script v23 manda d.horario)
+function fsHorarioTexto(h){ return h && (h.inicio || h.fim) ? ' · ' + escapeHtml((h.inicio || '…') + ' às ' + (h.fim || '…')) : (h ? ' · dia todo' : ''); }
+function fsHorarioTitulo(h){
+  if (!h || h.noHorario) return 'Food secreto ligado hoje';
+  return h.inicio && h.agora < h.inicio ? 'Food secreto começa às ' + escapeHtml(h.inicio) : 'Food secreto encerrado hoje';
+}
+
 function renderFoodSecreto(){
   const d = fsDados, hoje = d.hoje;
   const regra = (d.regras || []).find(r => r.id === d.regraHoje);
@@ -1405,7 +1414,7 @@ function renderFoodSecreto(){
   const pct = regra && regra.limite ? Math.min(100, Math.round(daRegra.length / regra.limite * 100)) : 0;
   const onde = regra ? (regra.data ? (d.eventoHoje && (d.eventoHoje.evento || d.eventoHoje.local)) || regra.local : 'Todo dia') : '';
   document.getElementById('fsStatus').innerHTML = regra
-    ? `<div class="fs-hero"><span class="big">Food secreto ligado hoje<small>${escapeHtml(onde)} · ${escapeHtml(regra.premio)} · a cada ${regra.cada} acessos${regra.tema === 'odd' ? ' · visual ODD' : regra.tema === 'aniversario' ? ' · visual Aniversário' : ''}</small></span></div>
+    ? `<div class="fs-hero"><span class="big">${fsHorarioTitulo(d.horario)}<small>${escapeHtml(onde)} · ${escapeHtml(regra.premio)} · a cada ${regra.cada} acessos${fsHorarioTexto(d.horario)}${regra.tema === 'odd' ? ' · visual ODD' : regra.tema === 'aniversario' ? ' · visual Aniversário' : ''}</small></span></div>
        <div class="fs-stats"><div class="fs-stat"><b>${d.acessos || 0}</b><span>Acessos</span></div><div class="fs-stat"><b>${daRegra.length}</b><span>Apareceu</span></div><div class="fs-stat"><b>${usados}</b><span>Resgatados</span></div><div class="fs-stat"><b>${restam}</b><span>Restam</span></div></div>
        <div class="fs-barra"><i style="width:${pct}%"></i></div>
        <p class="fs-nota">Acessos = visitas ao cardápio hoje, de todo mundo junto. O mesmo celular conta 1 vez a cada 30 min, então atualizar a página não força o food. Cada celular vê o food no máximo 1 vez por dia. Limite de hoje: ${regra.limite}. Quando acabar, o food some do site sozinho.${regra.soltar ? ' Ainda soltos: ' + regra.soltar + (regra.soltar === 1 ? ' pessoa' : ' pessoas') + ' para ver o food.' : ''}</p>
@@ -1427,7 +1436,7 @@ function renderFoodSecreto(){
 
   const regras = d.regras || [];
   document.getElementById('fsRegras').innerHTML = regras.length
-    ? '<ul class="fs-lista">' + regras.map(r => `<li><button class="fs-regra" type="button" data-fs-chave="${escapeHtml(fsChave(r.data, r.local))}"><b>${escapeHtml(r.data ? fsDataCurta(r.data) + ' · ' + (r.evento || r.local) : 'Todo dia')}</b><br>${escapeHtml(r.premio)} · a cada ${r.cada} · ${r.limite}/dia${r.tema === 'odd' ? ' · ODD' : r.tema === 'aniversario' ? ' · Aniversário 🎈' : ''}</button><button class="fs-cod-btn" type="button" data-fs-codigos="${escapeHtml(r.id)}">🎟️ Códigos</button><span class="fs-tag ${r.ligado ? 'ok' : 'off'}">${r.ligado ? 'Ligado' : 'Desligado'}</span></li>`).join('') + '</ul>'
+    ? '<ul class="fs-lista">' + regras.map(r => `<li><button class="fs-regra" type="button" data-fs-chave="${escapeHtml(fsChave(r.data, r.local))}"><b>${escapeHtml(r.data ? fsDataCurta(r.data) + ' · ' + (r.evento || r.local) : 'Todo dia')}</b><br>${escapeHtml(r.premio)} · a cada ${r.cada} · ${r.limite}/dia${r.inicio || r.fim ? ' · ' + escapeHtml((r.inicio || '…') + '–' + (r.fim || '…')) : ''}${r.tema === 'odd' ? ' · ODD' : r.tema === 'aniversario' ? ' · Aniversário 🎈' : ''}</button><button class="fs-cod-btn" type="button" data-fs-codigos="${escapeHtml(r.id)}">🎟️ Códigos</button><span class="fs-tag ${r.ligado ? 'ok' : 'off'}">${r.ligado ? 'Ligado' : 'Desligado'}</span></li>`).join('') + '</ul>'
     : '<div class="agenda-vazio">Nenhuma regra ainda. Configure acima e salve.</div>';
   document.querySelectorAll('[data-fs-chave]').forEach(b => b.addEventListener('click', () => { sel.value = b.dataset.fsChave; fsPreencherForm(); sel.scrollIntoView({ behavior: 'smooth', block: 'center' }); }));
   document.querySelectorAll('[data-fs-codigos]').forEach(b => b.addEventListener('click', () => abrirCodigosFS(b.dataset.fsCodigos)));
@@ -1447,6 +1456,13 @@ function fsPreencherForm(){
   document.getElementById('fsLimite').value = r ? r.limite : 20;
   document.getElementById('fsMensagem').value = r ? r.mensagem : 'Você achou o food secreto!!';
   document.getElementById('fsPremio').value = r ? r.premio : 'Vale 1 Guioza!!!!';
+  // v34 (Apps Script v23): horário da promo; em branco = horário do evento (ou o dia todo)
+  document.getElementById('fsInicio').value = r && r.inicio ? r.inicio : '';
+  document.getElementById('fsFim').value = r && r.fim ? r.fim : '';
+  const ev = op.data ? (fsDados.eventos || []).find(e => fsChave(e.data, e.local) === op.chave) : null;
+  document.getElementById('fsHorarioNota').textContent = op.data
+    ? 'Em branco: horário do evento na agenda' + (ev && (ev.inicio || ev.fim) ? ' (' + (ev.inicio || '…') + ' às ' + (ev.fim || '…') + ').' : ' (sem horário na agenda = dia todo).')
+    : 'Em branco: vale o dia todo.';
   const radios = document.querySelectorAll('input[name="fsTema"]');
   const temaAtual = r && r.tema ? r.tema : '';
   radios.forEach(x => { x.checked = x.value === temaAtual; });
@@ -1463,6 +1479,7 @@ async function salvarFoodSecreto(){
     ligado: document.getElementById('fsLigado').checked,
     cada: document.getElementById('fsCada').value, limite: document.getElementById('fsLimite').value,
     mensagem: document.getElementById('fsMensagem').value.trim(), premio: document.getElementById('fsPremio').value.trim(),
+    inicio: document.getElementById('fsInicio').value, fim: document.getElementById('fsFim').value,
     tema: (document.querySelector('input[name="fsTema"]:checked') || {}).value || ''
   };
   if (!regra.premio) { msg.className = 'save-msg erro'; msg.textContent = 'Escreva o prêmio.'; return; }
