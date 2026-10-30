@@ -1032,7 +1032,7 @@
     <div class="card">
       <div class="fs-valida"><input type="text" id="fsCodigo" placeholder="NARUA-XXXX" autocomplete="off" autocapitalize="characters"><button class="btn-primary" type="button" id="fsValidarBtn" style="flex:0 0 auto;padding:11px 16px">Validar</button></div>
       <div id="fsResultado"></div>
-      <p class="fs-nota">Válido = vale o prêmio e fica marcado como usado. Código já usado ou de outro dia não vale.</p>
+      <p class="fs-nota">Válido = vale o prêmio e fica marcado como usado. Código já usado, expirado ou de outro dia não vale.</p>
     </div>
 
     <div class="step-label">⚙️ Regras</div>
@@ -1419,7 +1419,11 @@ function fsHorarioTitulo(h){
 // aparecer no acesso nº cada, 2×cada, 3×cada... (todos os visitantes juntos).
 function fsProximoHtml(d, regra, restam){
   const h = d.horario;
-  if (!restam) return '<div class="fs-prox fim"><b>Limite de hoje atingido</b><span>O food não aparece mais hoje.</span></div>';
+  if (!restam) {
+    const livres = (d.cupons || []).filter(c => c.regra === regra.id && c.status === 'Livre');
+    if (livres.length) return '<div class="fs-prox fim"><b>Limite cheio por enquanto</b><span>' + livres.length + (livres.length === 1 ? ' cupom ainda não usado' : ' cupons ainda não usados') + (livres[0].ate ? ' (o 1º vale até ' + escapeHtml(livres.map(c => c.ate).sort()[0]) + ')' : '') + '. Se não usarem a tempo, voltam pra fila e o food aparece de novo.</span></div>';
+    return '<div class="fs-prox fim"><b>Limite de hoje atingido</b><span>O food não aparece mais hoje.</span></div>';
+  }
   if (h && !h.noHorario) return '<div class="fs-prox fim"><b>' + (h.inicio && h.agora < h.inicio ? 'Contador parado até ' + escapeHtml(h.inicio) : 'Promo encerrada hoje') + '</b><span>Fora do horário os acessos não contam.</span></div>';
   if (regra.soltar) return '<div class="fs-prox ja"><b>🚀 Solto agora</b><span>A próxima pessoa que abrir o cardápio vê o food.</span></div>';
   const cada = Math.max(1, regra.cada || 1), feitos = (d.acessos || 0) % cada, faltam = cada - feitos;
@@ -1442,15 +1446,17 @@ function renderFoodSecreto(silencioso){
   const regra = (d.regras || []).find(r => r.id === d.regraHoje);
   const daRegra = (d.cupons || []).filter(c => regra && c.regra === regra.id);
   const usados = daRegra.filter(c => c.status === 'Usado').length;
-  const restam = regra ? Math.max(0, regra.limite - daRegra.length) : 0;
-  const pct = regra && regra.limite ? Math.min(100, Math.round(daRegra.length / regra.limite * 100)) : 0;
+  // v35 (Apps Script v24): o limite conta usados + os que ainda valem; expirado volta pra fila
+  const valendo = daRegra.filter(c => c.status === 'Usado' || c.status === 'Livre').length;
+  const restam = regra ? Math.max(0, regra.limite - valendo) : 0;
+  const pct = regra && regra.limite ? Math.min(100, Math.round(usados / regra.limite * 100)) : 0;
   const onde = regra ? (regra.data ? (d.eventoHoje && (d.eventoHoje.evento || d.eventoHoje.local)) || regra.local : 'Todo dia') : '';
   document.getElementById('fsStatus').innerHTML = regra
     ? `<div class="fs-hero"><span class="big">${fsHorarioTitulo(d.horario)}<small>${escapeHtml(onde)} · ${escapeHtml(regra.premio)} · a cada ${regra.cada} acessos${fsHorarioTexto(d.horario)}${regra.tema === 'odd' ? ' · visual ODD' : regra.tema === 'aniversario' ? ' · visual Aniversário' : ''}</small></span></div>
        <div class="fs-stats"><div class="fs-stat"><b>${d.acessos || 0}</b><span>Acessos</span></div><div class="fs-stat"><b>${daRegra.length}</b><span>Apareceu</span></div><div class="fs-stat"><b>${usados}</b><span>Resgatados</span></div><div class="fs-stat"><b>${restam}</b><span>Restam</span></div></div>
        <div class="fs-barra"><i style="width:${pct}%"></i></div>
        ${fsProximoHtml(d, regra, restam)}
-       <p class="fs-nota">Acessos = visitas ao cardápio hoje, de todo mundo junto. O mesmo celular conta 1 vez a cada 30 min, então atualizar a página não força o food. Cada celular vê o food no máximo 1 vez por dia. Limite de hoje: ${regra.limite}. Quando acabar, o food some do site sozinho.${regra.soltar ? ' Ainda soltos: ' + regra.soltar + (regra.soltar === 1 ? ' pessoa' : ' pessoas') + ' para ver o food.' : ''}</p>
+       <p class="fs-nota">Acessos = visitas ao cardápio hoje, de todo mundo junto. O mesmo celular conta 1 vez a cada 30 min, então atualizar a página não força o food. Cada celular vê o food no máximo 1 vez por dia. Limite de hoje: ${regra.limite} cupons usados. ${d.validadeMin ? 'O cupom vale ' + d.validadeMin + ' min; não usado, expira e volta pro fim da fila (o food aparece para outra pessoa). ' : ''}Quando acabar, o food some do site sozinho.${regra.soltar ? ' Ainda soltos: ' + regra.soltar + (regra.soltar === 1 ? ' pessoa' : ' pessoas') + ' para ver o food.' : ''}</p>
        <label for="fsSoltarN" style="margin-top:14px">Soltar o food agora para quantas pessoas?</label>
        <div class="fs-soltar" style="margin-top:0"><select id="fsSoltarN"><option value="1">1 pessoa</option><option value="3" selected>3 pessoas</option><option value="5">5 pessoas</option><option value="10">10 pessoas</option></select><button type="button" id="fsSoltarBtn">🚀 Soltar para 3 pessoas</button></div>
        <p class="fs-nota">As próximas pessoas que abrirem o cardápio veem o food na hora, sem esperar os ${regra.cada} acessos. Cada uma ganha um cupom (conta no limite do dia).</p>
@@ -1479,7 +1485,7 @@ function renderFoodSecreto(silencioso){
 
   const cupons = (d.cupons || []).slice().reverse();
   document.getElementById('fsCupons').innerHTML = cupons.length
-    ? '<ul class="fs-lista">' + cupons.map(c => `<li>${c.numero ? '<span class="fs-tag off">nº ' + c.numero + '</span>' : ''}<code>${escapeHtml(c.codigo)}</code><span>${escapeHtml(c.gerado)}</span>${c.repetido ? '<span class="fs-tag alerta" title="Mais de um cupom hoje com a mesma marca de aparelho">⚠️ mesmo aparelho?</span>' : ''}<span class="fs-tag ${c.status === 'Usado' ? 'ok' : 'livre'}">${escapeHtml(c.status)}</span></li>`).join('') + '</ul><p class="fs-nota">Tudo fica na aba "Food secreto cupons" da planilha.' + (cupons.some(c => c.repetido) ? ' ⚠️ = mais de um cupom com o mesmo modelo de celular (pode ser a mesma pessoa ou só celulares iguais); confira no balcão.' : '') + '</p>'
+    ? '<ul class="fs-lista">' + cupons.map(c => `<li>${c.numero ? '<span class="fs-tag off">nº ' + c.numero + '</span>' : ''}<code>${escapeHtml(c.codigo)}</code><span>${escapeHtml(c.gerado)}</span>${c.repetido ? '<span class="fs-tag alerta" title="Mais de um cupom hoje com a mesma marca de aparelho">⚠️ mesmo aparelho?</span>' : ''}<span class="fs-tag ${c.status === 'Usado' ? 'ok' : c.status === 'Expirado' ? 'off' : 'livre'}">${escapeHtml(c.status === 'Livre' && c.ate ? 'Livre até ' + c.ate : c.status)}</span></li>`).join('') + '</ul><p class="fs-nota">Tudo fica na aba "Food secreto cupons" da planilha.' + (cupons.some(c => c.repetido) ? ' ⚠️ = mais de um cupom com o mesmo modelo de celular (pode ser a mesma pessoa ou só celulares iguais); confira no balcão.' : '') + '</p>'
     : '<div class="agenda-vazio">Nenhum cupom hoje.</div>';
 }
 
@@ -1595,13 +1601,16 @@ async function carregarCodigosFS(){
     const cods = j.codigos || [];
     const saiu = cods.filter(c => c.status !== 'Reservado').length, usados = cods.filter(c => c.status === 'Usado').length;
     const ehHoje = j.data === j.hoje;
+    const min = (fsDados && fsDados.validadeMin) || 0;
+    const ate = h => { if (!min || !/^\d\d:\d\d$/.test(h || '')) return ''; const t = Math.min(+h.slice(0, 2) * 60 + +h.slice(3) + min, 1439); return ' · até ' + String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
     const tag = c => c.status === 'Usado' ? `<span class="fs-tag ok">Usado ${escapeHtml(c.usado_em)}</span>`
       : c.status === 'Reservado' ? '<span class="fs-tag res">Ainda não saiu</span>'
-      : `<span class="fs-tag livre">Saiu ${escapeHtml(c.saiu)}</span>`;
+      : c.status === 'Expirado' ? `<span class="fs-tag off">Expirou (saiu ${escapeHtml(c.saiu)})</span>`
+      : `<span class="fs-tag livre">Saiu ${escapeHtml(c.saiu)}${ate(c.saiu)}</span>`;
     corpo.innerHTML = cods.length
       ? `<div class="fs-cod-stats"><div class="fs-stat"><b>${cods.length}</b><span>Códigos</span></div><div class="fs-stat"><b>${saiu}</b><span>Já saíram</span></div><div class="fs-stat"><b>${usados}</b><span>Usados</span></div></div>
-         <ul class="fs-cod-lista">${cods.map(c => `<li class="${c.status === 'Usado' ? 'usado' : c.status === 'Reservado' ? '' : (ehHoje ? 'saiu' : '')}" data-fs-cod="${escapeHtml(c.codigo)}"><span class="n">${c.numero}</span><code>${escapeHtml(c.codigo)}</code>${tag(c)}</li>`).join('')}</ul>
-         <p class="fs-nota">${j.passou ? 'Esse evento já passou.' : 'Os códigos saem do site nesta ordem (o cliente vê o nº junto do código). Só vale código que já saiu. ' + (ehHoje ? 'Toque num código que saiu para marcar como usado.' : 'Dá para tirar print desta lista antes do evento.')}</p>`
+         <ul class="fs-cod-lista">${cods.map(c => `<li class="${c.status === 'Usado' || c.status === 'Expirado' ? 'usado' : c.status === 'Reservado' ? '' : (ehHoje ? 'saiu' : '')}" data-fs-cod="${escapeHtml(c.codigo)}"><span class="n">${c.numero}</span><code>${escapeHtml(c.codigo)}</code>${tag(c)}</li>`).join('')}</ul>
+         <p class="fs-nota">${j.passou ? 'Esse evento já passou.' : 'Os códigos saem do site nesta ordem (o cliente vê o nº junto do código). Só vale código que já saiu' + (min ? ', por ' + min + ' min; expirado volta pro fim da lista com código novo' : '') + '. ' + (ehHoje ? 'Toque num código que saiu para marcar como usado.' : 'Dá para tirar print desta lista antes do evento.')}</p>`
       : `<div class="agenda-vazio">${j.passou ? 'Nenhum código saiu nesse evento.' : 'Limite por dia = 0. Aumente o limite e salve a regra.'}</div>`;
     corpo.querySelectorAll('li.saiu').forEach(li => li.addEventListener('click', e => {
       if (e.target.closest('.fs-marcar')) return;
