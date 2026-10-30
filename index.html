@@ -469,6 +469,13 @@
   .fs-stat span{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:600;}
   .fs-barra{height:10px;border:2px solid var(--ink);border-radius:999px;background:#fff;margin-top:10px;overflow:hidden;}
   .fs-barra i{display:block;height:100%;background:var(--orange);}
+  .fs-prox{margin-top:12px;border:2px solid var(--ink);border-radius:10px;padding:10px 12px;background:#fff;color:var(--ink);}
+  .fs-prox b{display:block;font-family:'Titan One',cursive;font-weight:400;font-size:17px;}
+  .fs-prox span{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:6px;}
+  .fs-prox.ja{background:#fff3d6;} .fs-prox.fim{background:#eee;}
+  .fs-bolas{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .fs-bolas i{width:16px;height:16px;border-radius:50%;border:2px solid var(--ink);background:#fff;}
+  .fs-bolas i.on{background:var(--orange);} .fs-bolas i.alvo{background:#fff;border-style:dashed;}
   .fs-nota{font-size:12px;color:var(--ink-soft);margin:8px 0 0;}
   .fs-soltar{display:flex;gap:8px;margin-top:12px;}
   .fs-soltar select{flex:0 0 128px;}
@@ -1330,6 +1337,7 @@ function showView(view, opcoes){
   document.querySelector('.wrap').classList.toggle('largo', view === 'semanal' || view === 'bi');
   if (view === 'consultarCompras') loadCompras();
   if (view === 'foodSecreto') loadFoodSecreto();
+  fsAutoAtualizar(view === 'foodSecreto');
   if (view === 'video') abrirVideo();
   if (!trocaDeAba) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1367,7 +1375,7 @@ async function fsPost(corpo){
   return j;
 }
 
-async function loadFoodSecreto(){
+async function loadFoodSecreto(silencioso){
   const status = document.getElementById('fsStatus');
   try {
     const res = await fetchServidor(urlServidor({ action: 'foodSecretoPainel' }));
@@ -1375,8 +1383,10 @@ async function loadFoodSecreto(){
     try { j = await res.json(); } catch(e){ throw new Error('a planilha não respondeu em JSON'); }
     if (!j || j.ok !== true) throw new Error(j && j.erro === 'login' ? 'sua sessão terminou; entre de novo com a conta Google' : 'publique o Apps Script v18 primeiro');
     fsDados = j;
-    renderFoodSecreto();
+    fsAtualizadoEm = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    renderFoodSecreto(silencioso);
   } catch(err){
+    if (silencioso) return;
     status.innerHTML = '<div class="agenda-vazio">Não consegui carregar: ' + escapeHtml(err.message) + '</div>';
   }
 }
@@ -1405,7 +1415,29 @@ function fsHorarioTitulo(h){
   return h.inicio && h.agora < h.inicio ? 'Food secreto começa às ' + escapeHtml(h.inicio) : 'Food secreto encerrado hoje';
 }
 
-function renderFoodSecreto(){
+// v35: contador "falta quanto para o food aparecer". O servidor faz o food
+// aparecer no acesso nº cada, 2×cada, 3×cada... (todos os visitantes juntos).
+function fsProximoHtml(d, regra, restam){
+  const h = d.horario;
+  if (!restam) return '<div class="fs-prox fim"><b>Limite de hoje atingido</b><span>O food não aparece mais hoje.</span></div>';
+  if (h && !h.noHorario) return '<div class="fs-prox fim"><b>' + (h.inicio && h.agora < h.inicio ? 'Contador parado até ' + escapeHtml(h.inicio) : 'Promo encerrada hoje') + '</b><span>Fora do horário os acessos não contam.</span></div>';
+  if (regra.soltar) return '<div class="fs-prox ja"><b>🚀 Solto agora</b><span>A próxima pessoa que abrir o cardápio vê o food.</span></div>';
+  const cada = Math.max(1, regra.cada || 1), feitos = (d.acessos || 0) % cada, faltam = cada - feitos;
+  const bolas = cada <= 20 ? '<div class="fs-bolas">' + Array.from({ length: cada }, (_, i) => '<i class="' + (i < feitos ? 'on' : i === cada - 1 ? 'alvo' : '') + '"></i>').join('') + '</div>' : '<div class="fs-barra"><i style="width:' + Math.round(feitos / cada * 100) + '%"></i></div>';
+  return '<div class="fs-prox' + (faltam === 1 ? ' ja' : '') + '"><b>' + (faltam === 1 ? '🔥 O próximo acesso ganha o food!' : 'Faltam ' + faltam + ' acessos para o food aparecer') + '</b>' + bolas + '<span>' + feitos + ' de ' + cada + ' nesta rodada · atualiza sozinho a cada 30 s' + (fsAtualizadoEm ? ' · ' + fsAtualizadoEm : '') + '</span></div>';
+}
+
+var fsAuto = null, fsAtualizadoEm = '';
+function fsAutoAtualizar(ligar){
+  clearInterval(fsAuto); fsAuto = null;
+  if (ligar) fsAuto = setInterval(() => {
+    if (document.hidden || document.getElementById('viewFoodSecreto').style.display === 'none') return;
+    loadFoodSecreto(true);
+  }, 30000);
+}
+
+function renderFoodSecreto(silencioso){
+  const soltarEscolha = document.getElementById('fsSoltarN') && document.getElementById('fsSoltarN').value;
   const d = fsDados, hoje = d.hoje;
   const regra = (d.regras || []).find(r => r.id === d.regraHoje);
   const daRegra = (d.cupons || []).filter(c => regra && c.regra === regra.id);
@@ -1417,6 +1449,7 @@ function renderFoodSecreto(){
     ? `<div class="fs-hero"><span class="big">${fsHorarioTitulo(d.horario)}<small>${escapeHtml(onde)} · ${escapeHtml(regra.premio)} · a cada ${regra.cada} acessos${fsHorarioTexto(d.horario)}${regra.tema === 'odd' ? ' · visual ODD' : regra.tema === 'aniversario' ? ' · visual Aniversário' : ''}</small></span></div>
        <div class="fs-stats"><div class="fs-stat"><b>${d.acessos || 0}</b><span>Acessos</span></div><div class="fs-stat"><b>${daRegra.length}</b><span>Apareceu</span></div><div class="fs-stat"><b>${usados}</b><span>Resgatados</span></div><div class="fs-stat"><b>${restam}</b><span>Restam</span></div></div>
        <div class="fs-barra"><i style="width:${pct}%"></i></div>
+       ${fsProximoHtml(d, regra, restam)}
        <p class="fs-nota">Acessos = visitas ao cardápio hoje, de todo mundo junto. O mesmo celular conta 1 vez a cada 30 min, então atualizar a página não força o food. Cada celular vê o food no máximo 1 vez por dia. Limite de hoje: ${regra.limite}. Quando acabar, o food some do site sozinho.${regra.soltar ? ' Ainda soltos: ' + regra.soltar + (regra.soltar === 1 ? ' pessoa' : ' pessoas') + ' para ver o food.' : ''}</p>
        <label for="fsSoltarN" style="margin-top:14px">Soltar o food agora para quantas pessoas?</label>
        <div class="fs-soltar" style="margin-top:0"><select id="fsSoltarN"><option value="1">1 pessoa</option><option value="3" selected>3 pessoas</option><option value="5">5 pessoas</option><option value="10">10 pessoas</option></select><button type="button" id="fsSoltarBtn">🚀 Soltar para 3 pessoas</button></div>
@@ -1424,15 +1457,18 @@ function renderFoodSecreto(){
        <div class="save-msg" id="fsSoltarMsg"></div>`
     : `<div class="fs-hero"><span class="big">Food secreto desligado hoje<small>Nenhuma regra ligada para hoje (${fsDataCurta(hoje)}). Ligue "Todo dia" ou a regra do evento abaixo.</small></span></div>`;
   const soltar = document.getElementById('fsSoltarBtn');
+  if (soltarEscolha && document.getElementById('fsSoltarN')) { document.getElementById('fsSoltarN').value = soltarEscolha; soltar.textContent = '🚀 Soltar para ' + soltarEscolha + (soltarEscolha === '1' ? ' pessoa' : ' pessoas'); }
   if (soltar) soltar.addEventListener('click', () => soltarFoodSecreto(regra.id));
   const soltarN = document.getElementById('fsSoltarN');
   if (soltarN) soltarN.addEventListener('change', () => { const q = soltarN.value; soltar.textContent = '🚀 Soltar para ' + q + (q === '1' ? ' pessoa' : ' pessoas'); });
 
-  const sel = document.getElementById('fsQuando'), atual = sel.value;
-  const ops = fsOpcoesQuando();
-  sel.innerHTML = ops.map(o => `<option value="${escapeHtml(o.chave)}">${escapeHtml(o.texto)}</option>`).join('');
-  sel.value = ops.some(o => o.chave === atual) ? atual : (regra ? fsChave(regra.data, regra.local) : FS_TODO_DIA);
-  fsPreencherForm();
+  const sel = document.getElementById('fsQuando');
+  if (!silencioso) {  // v35: a atualização automática não mexe no formulário que a pessoa está editando
+    const atual = sel.value, ops = fsOpcoesQuando();
+    sel.innerHTML = ops.map(o => `<option value="${escapeHtml(o.chave)}">${escapeHtml(o.texto)}</option>`).join('');
+    sel.value = ops.some(o => o.chave === atual) ? atual : (regra ? fsChave(regra.data, regra.local) : FS_TODO_DIA);
+    fsPreencherForm();
+  }
 
   const regras = d.regras || [];
   document.getElementById('fsRegras').innerHTML = regras.length
