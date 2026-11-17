@@ -2435,22 +2435,30 @@ document.getElementById('sairBtn').addEventListener('click', async () => {
 let infoServidor = { versao: 0, ia: false };
 
 async function consultarServidor(){
-  const info = { versao: 0, ia: false, fotos: false, login: null, usuario: null };
+  const info = { versao: 0, ia: false, fotos: false, login: null, usuario: null, semResposta: false };
   if (!webhookUrl) return info;
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
-    const res = await fetch(urlServidor({ action: 'versao' }), { signal: ctrl.signal });
-    clearTimeout(timer);
-    const j = await res.json();
-    if (j && j.ok) {
-      info.versao = Number(j.versao) || 0;
-      info.ia = !!j.ia;
-      info.fotos = !!j.fotos;
-      info.login = j.login || null;
-      info.usuario = j.usuario || null;
-    }
-  } catch(e){ /* offline, script antigo ou resposta em HTML */ }
+  // v38: internet lenta / planilha "acordando" passava de 8 s e o app achava que
+  // o Apps Script era antigo ("hoje: v?"). Agora espera até 20 s e tenta 2 vezes.
+  for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 20000);
+      const res = await fetch(urlServidor({ action: 'versao' }), { signal: ctrl.signal });
+      clearTimeout(timer);
+      const j = await res.json();
+      if (j && j.ok) {
+        info.versao = Number(j.versao) || 0;
+        info.ia = !!j.ia;
+        info.fotos = !!j.fotos;
+        info.login = j.login || null;
+        info.usuario = j.usuario || null;
+        return info;
+      }
+    } catch(e){ /* offline, demorou, script antigo ou resposta em HTML */ }
+  }
+  // Sem resposta: se já sabíamos a versão nesta sessão, mantém (não "esquece" a planilha).
+  if (typeof infoServidor !== 'undefined' && infoServidor && infoServidor.versao > 0) return infoServidor;
+  info.semResposta = true;
   return info;
 }
 
@@ -5510,9 +5518,22 @@ async function completarLocalAgenda(){
 async function loadAgenda(){
   if (!agendaIniciada) iniciarAgenda();
   const aviso = document.getElementById('agendaAvisoVersao');
-  if ((infoServidor.versao || 0) < 8) infoServidor = await consultarServidor();
   if ((infoServidor.versao || 0) < 8) {
-    aviso.innerHTML = `<div class="agenda-erro" style="margin:0;">A agenda precisa do Apps Script v8 publicado na planilha (hoje: v${infoServidor.versao || '?'}). Até lá, dá para mudar a agenda direto na aba Eventos da planilha.</div>`;
+    aviso.innerHTML = '<div class="agenda-vazio" style="margin:0;">Conectando com a planilha…</div>';
+    aviso.style.display = 'block';
+    infoServidor = await consultarServidor();
+  }
+  if (!infoServidor.versao) {
+    // v38: sem resposta da planilha não é "versão antiga". Explica e deixa tentar de novo.
+    aviso.innerHTML = `<div class="agenda-erro" style="margin:0;">Não consegui falar com a planilha agora (internet fraca ou a planilha demorou para responder). Confira a internet e toque em Tentar de novo.</div>
+      <button type="button" class="add-item" style="margin-top:10px;" onclick="loadAgenda()">🔄 Tentar de novo</button>`;
+    aviso.style.display = 'block';
+    document.getElementById('agProximos').innerHTML = '<div class="agenda-vazio">Sem conexão com a planilha.</div>';
+    document.getElementById('agLista').innerHTML = '<div class="agenda-vazio">Sem conexão com a planilha.</div>';
+    return;
+  }
+  if (infoServidor.versao < 8) {
+    aviso.innerHTML = `<div class="agenda-erro" style="margin:0;">A agenda precisa do Apps Script v8 publicado na planilha (hoje: v${infoServidor.versao}). Até lá, dá para mudar a agenda direto na aba Eventos da planilha.</div>`;
     aviso.style.display = 'block';
     document.getElementById('agProximos').innerHTML = '<div class="agenda-vazio">Aguardando o Apps Script v8.</div>';
     document.getElementById('agLista').innerHTML = '<div class="agenda-vazio">Aguardando o Apps Script v8.</div>';
