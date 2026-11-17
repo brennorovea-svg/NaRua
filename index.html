@@ -1038,8 +1038,7 @@
         </div>
         <div class="field" style="flex:2 1 200px;">
           <label for="agCardapio">Cardápio especial <span class="label-opcional">(opcional, da aba Cardápios especiais)</span></label>
-          <input type="text" id="agCardapio" list="agCardapiosList" placeholder="Ex: ODD Halloween">
-          <datalist id="agCardapiosList"></datalist>
+          <select id="agCardapio"><option value="">Sem cardápio especial</option></select>
         </div>
       </div>
       <div class="evento-hint" style="margin:0 0 8px;">Evento especial aparece sempre no "Onde estamos" do site, numa seção própria. Com cardápio especial, o site mostra esse cardápio no dia do evento e o app usa os preços dele ao lançar as comandas.</div>
@@ -5317,7 +5316,7 @@ function preencherFormAgenda(ev){
   c.aviso.value = ev.aviso || '';
   c.mostrar.checked = ev.mostrar !== false;
   c.especial.checked = !!ev.especial;
-  c.cardapio.value = ev.cardapio || '';
+  preencherCardapiosAgenda(ev.cardapio || '');
   agendaAvisosVistos = '';
   atualizarBotaoSalvarAgenda('');
 }
@@ -5498,10 +5497,24 @@ function renderAgendaListas(){
   atualizarLocaisAgenda();
 }
 
+// v39: seletor de cardápio especial da agenda. Era <datalist>, que no Chrome do
+// celular não mostra a lista ao tocar. Agora é <select> com os cardápios cadastrados.
+function preencherCardapiosAgenda(valor){
+  const sel = document.getElementById('agCardapio');
+  if (!sel) return;
+  const atual = valor !== undefined ? String(valor || '').trim() : sel.value;
+  const nomes = CARDAPIOS_ESPECIAIS.map(c => c.nome).filter(Boolean);
+  let html = `<option value="">${nomes.length ? 'Sem cardápio especial' : 'Nenhum cardápio especial cadastrado'}</option>`;
+  html += nomes.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  if (atual && !nomes.includes(atual)) html += `<option value="${escapeHtml(atual)}">${escapeHtml(atual)} (não achei na aba)</option>`;
+  sel.innerHTML = html;
+  sel.value = atual;
+}
+
 async function atualizarLocaisAgenda(){
   const l = await locaisConhecidos();
   document.getElementById('agLocaisList').innerHTML = l.map(x => `<option value="${escapeHtml(x.local)}"></option>`).join('');
-  document.getElementById('agCardapiosList').innerHTML = CARDAPIOS_ESPECIAIS.map(c => `<option value="${escapeHtml(c.nome)}"></option>`).join('');
+  preencherCardapiosAgenda();
 }
 
 // Local conhecido digitado: usa a grafia já usada e traz o endereço que a agenda tem.
@@ -5541,7 +5554,7 @@ async function loadAgenda(){
   }
   aviso.style.display = 'none';
   carregarCardapiosEspeciais().then(() => {
-    document.getElementById('agCardapiosList').innerHTML = CARDAPIOS_ESPECIAIS.map(c => `<option value="${escapeHtml(c.nome)}"></option>`).join('');
+    preencherCardapiosAgenda();
   });
   try {
     await carregarEventos(true);
